@@ -1,0 +1,1 @@
+Ce dépôt vise à réunir l'ensemble du code destiné au projet DÉMONSTRATEUR en collaboration avec l'entreprise Touch2See.
