@@ -1,0 +1,15 @@
+# Environnement virtuel
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Base de données locale Django
+db.sqlite3
+
+# Fichiers media (uploads locaux)
+media/
+
+# Variables d'environnement
+.env
