@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Uploading Test</title>
+</head>
+<body>
+    <h1>Upload Video and Coordinates files</h1>
+    
+    <input type="file" id="video">
+    <input type="file" id="coords">
+    <button onclick="upload()">Upload</button>
+    
+    <div id="result"></div>
+
+    <script>
+        function upload() {
+            const videoFile = document.getElementById('video').files[0];
+            const coordsFile = document.getElementById('coords').files[0];
+            
+            const formData = new FormData();
+            formData.append('video', videoFile);
+            formData.append('coordinates', coordsFile);
+            
+            fetch('/api/upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = JSON.stringify(data);
+            });
+        }
+    </script>
+</body>
+</html>
