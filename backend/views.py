@@ -1,5 +1,5 @@
 # backend/views.py
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Video, Coordinates
@@ -42,6 +42,20 @@ def upload_video(request):
         'success': True,
         'video_id': video.id,
         'coords_count': len(coords),
-        'coords_complete' : coords,
-        'fps' : fps
+        'coords_complete': coords,
+        'fps': fps
+    })
+
+       
+
+
+def viewer_page(request, video_id: int):
+    video = get_object_or_404(Video, id=video_id)
+
+    # fps peut être null si non calculé → on met une valeur de secours
+    fps = video.fps if video.fps and video.fps > 0 else 25.0
+
+    return render(request, "viewer.html", {
+        "video": video,
+        "fps": fps,
     })

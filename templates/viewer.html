@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Viewer</title>
+</head>
+<body>
+
+    <h1>Video viewer</h1>
+
+    <!-- Bouton retour -->
+    <a href="/">⬅ Retour à la page d’upload</a>
+
+    <br><br>
+
+    <!-- Vidéo -->
+    <video
+        id="video"
+        width="400"
+        controls
+        data-fps="{{ fps }}"
+    >
+        <source src="{{ video.file.url }}">
+        Your browser does not support the video tag.
+    </video>
+
+    <p>FPS : {{ fps }}</p>
+
+    <!-- Boutons de contrôle -->
+    <button onclick="pauseVideo()">Pause</button>
+    <button onclick="prevFrame()">⬅</button>
+    <button onclick="nextFrame()">➡</button>
+
+    <script>
+        const video = document.getElementById("video");
+
+        // FPS transmis par Django via data-fps
+        const fps = parseFloat(video.dataset.fps);
+        const frameDuration = 1 / fps;
+
+        function pauseVideo() {
+            video.pause();
+        }
+
+        function nextFrame() {
+            video.pause();
+            video.currentTime += frameDuration;
+        }
+
+        function prevFrame() {
+            video.pause();
+            video.currentTime -= frameDuration;
+            if (video.currentTime < 0) {
+                video.currentTime = 0;
+            }
+        }
+    </script>
+
+</body>
+</html>
