@@ -5,6 +5,7 @@ class Video(models.Model):
     file = models.FileField(upload_to='videos/')
     fileName = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    # numFrames = models.IntegerField(null=True, blank=True)
     fps = models.FloatField(null=True, blank=True)
 
     def __str__(self):
