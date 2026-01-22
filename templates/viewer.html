@@ -23,6 +23,13 @@
         Your browser does not support the video tag.
     </video>
 
+
+    <!-- Displaying the coords -->
+     <div id="coords-display" style="margin-top: 10px; padding: 10px; border: 1px solid black;">
+        <strong>Coordinates:</strong>
+        <div id="coords-content">x: -, y: -</div>
+     </div>
+
     <p>FPS : {{ fps }}</p>
 
     <!-- Boutons de contrôle -->
@@ -32,18 +39,41 @@
 
     <script>
         const video = document.getElementById("video");
+        const allCoordinatesJS = {{ allCoordinates|safe }};
 
         // FPS transmis par Django via data-fps
         const fps = parseFloat(video.dataset.fps);
         const frameDuration = 1 / fps;
+        console.log("FPS:", fps);
+        console.log("Frame Duration:", frameDuration);
+        console.log("All Coordinates:", allCoordinatesJS);
+        
+        // Get the current fame index technically (need bc of the synchro with the coordinates)
+        function getCurrentFrame() {
+            return Math.round(video.currentTime * fps);
+        }
+
+        function showCoordinatesForCurrentFrame() {
+            const currentFrame = getCurrentFrame();
+            const currentFrameContainer = document.getElementById("coords-content");
+            const coord = allCoordinatesJS.find(c => c.frame_id === currentFrame);
+
+            if (coord) {
+                currentFrameContainer.innerText = `FRAME ${currentFrame}: ${coord.x}, y: ${coord.y}`;
+            } else {
+                currentFrameContainer.innerText = `x: -, y: -`;
+            }
+        }
 
         function pauseVideo() {
             video.pause();
+            showCoordinatesForCurrentFrame();
         }
 
         function nextFrame() {
             video.pause();
             video.currentTime += frameDuration;
+            showCoordinatesForCurrentFrame();
         }
 
         function prevFrame() {
@@ -52,6 +82,7 @@
             if (video.currentTime < 0) {
                 video.currentTime = 0;
             }
+            showCoordinatesForCurrentFrame();
         }
     </script>
 
