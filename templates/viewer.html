@@ -2,17 +2,20 @@
 <html>
 <head>
     <title>Video Viewer</title>
+    <style>
+        #coords-content {
+            white-space: pre-line;
+        }
+    </style>
 </head>
 <body>
 
     <h1>Video viewer</h1>
 
-    <!-- Bouton retour -->
-    <a href="/">⬅ Retour à la page d’upload</a>
-
+    <a href="/">⬅ Importer un nouveau projet</a>
     <br><br>
 
-    <!-- Vidéo -->
+    <!-- Video -->
     <video
         id="video"
         width="400"
@@ -23,16 +26,36 @@
         Your browser does not support the video tag.
     </video>
 
-
-    <!-- Displaying the coords -->
-     <div id="coords-display" style="margin-top: 10px; padding: 10px; border: 1px solid black;">
-        <strong>Coordinates:</strong>
+    <!-- Coordinates display -->
+    <div id="coords-display" style="margin-top: 10px; padding: 10px; border: 1px solid black;">
+        <strong>Coordonnées:</strong>
         <div id="coords-content">x: -, y: -</div>
-     </div>
+    
+        <button
+            id="reset-btn"
+            onclick="resetCorrection()"
+            style="margin-top: 6px; display: none;"
+        >
+            Réinitialiser la correction
+        </button>
+    </div>
+    
 
-    <p>FPS : {{ fps }}</p>
+    <!-- Canvas -->
+    <canvas 
+        id="field-coords-display"
+        width="1050"
+        height="680"
+        style="border: 1px solid black; display: block; margin-top: 20px;">
+    </canvas>
 
-    <!-- Boutons de contrôle -->
+    <button onclick="saveCoordinates()" style="margin-top: 15px;">
+        Sauvegarder les coordonnées
+    </button>
+
+    <p>FPS: {{ fps }}</p>
+
+    <!-- Controls -->
     <button onclick="pauseVideo()">Pause</button>
     <button onclick="prevFrame()">⬅</button>
     <button onclick="nextFrame()">➡</button>
@@ -40,50 +63,208 @@
     <script>
         const video = document.getElementById("video");
         const allCoordinatesJS = {{ allCoordinates|safe }};
+        const correctedAllCoordinatesJS = {}; // frame_id : corrected coords
 
-        // FPS transmis par Django via data-fps
+        const canvas = document.getElementById("field-coords-display");
+        const ctx = canvas.getContext("2d");
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
         const fps = parseFloat(video.dataset.fps);
         const frameDuration = 1 / fps;
-        console.log("FPS:", fps);
-        console.log("Frame Duration:", frameDuration);
-        console.log("All Coordinates:", allCoordinatesJS);
-        
-        // Get the current fame index technically (need bc of the synchro with the coordinates)
+
+    
         function getCurrentFrame() {
             return Math.round(video.currentTime * fps);
         }
 
+        // Convert canvas coordinates to video coordinates (0-1024 range)
+        // bc the canvas is in 1050x680 but the video coords are in 1024x1024 (football field size)
+
+        function canvasToVideoCoords(canvasX, canvasY) {
+            return {
+                x: Math.round((canvasX / canvasWidth) * 1024),
+                y: Math.round((canvasY / canvasHeight) * 1024)
+            };
+        }
+
+        // displaying the coordinates for the current frame in the div
+
         function showCoordinatesForCurrentFrame() {
             const currentFrame = getCurrentFrame();
-            const currentFrameContainer = document.getElementById("coords-content");
-            const coord = allCoordinatesJS.find(c => c.frame_id === currentFrame);
+            const container = document.getElementById("coords-content");
+            const resetBtn = document.getElementById("reset-btn");
+            const original = allCoordinatesJS.find(c => c.frame_id === currentFrame);
+            const corrected = correctedAllCoordinatesJS[currentFrame];
 
-            if (coord) {
-                currentFrameContainer.innerText = `FRAME ${currentFrame}: ${coord.x}, y: ${coord.y}`;
+            if (!original) {
+                container.innerText = "x: -, y: -";
+                resetBtn.style.display = "none";
+                return;
+            }
+
+            let text = `FRAME ${currentFrame}\n`;
+            text += `Coords originales x: ${original.x}, y: ${original.y}`;
+
+            if (corrected) {
+                text += `\nCoords corrigées x: ${corrected.new_x}, y: ${corrected.new_y}`;
+                resetBtn.style.display = "inline-block";
             } else {
-                currentFrameContainer.innerText = `x: -, y: -`;
+                resetBtn.style.display = "none";
+            }
+
+            container.innerText = text;
+        }
+
+
+        // Drawing and corrections functions (so, hwo the crosses are drawn, and how the correction happens)
+
+        function drawCross(x, y, color) {
+            ctx.beginPath();
+            ctx.moveTo(x, y - 20);
+            ctx.lineTo(x, y + 20);
+            ctx.moveTo(x - 20, y);
+            ctx.lineTo(x + 20, y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // DIsplaying the original cross (red) and the green one where there is a correction
+        function drawCoordinatesOnField() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            const currentFrame = getCurrentFrame();
+            const original = allCoordinatesJS.find(c => c.frame_id === currentFrame);
+
+            if (!original) return;
+
+            const ox = (original.x / 1024) * canvasWidth;
+            const oy = (original.y / 1024) * canvasHeight;
+            drawCross(ox, oy, "red");
+
+            const corrected = correctedAllCoordinatesJS[currentFrame];
+            if (corrected) {
+                const cx = (corrected.new_x / 1024) * canvasWidth;
+                const cy = (corrected.new_y / 1024) * canvasHeight;
+                drawCross(cx, cy, "green");
             }
         }
 
+        // Adding the corrected coordinates cross to the canva, and displaying them next to the og ones !
+        function correctCoordinates(canvasX, canvasY) {
+            const currentFrame = getCurrentFrame();
+            const original = allCoordinatesJS.find(c => c.frame_id === currentFrame);
+            if (!original) return;
+
+            const { x, y } = canvasToVideoCoords(canvasX, canvasY);
+
+            correctedAllCoordinatesJS[currentFrame] = {
+                frame_id: currentFrame,
+                old_x: original.x,
+                old_y: original.y,
+                new_x: x,
+                new_y: y
+            };
+
+            showCoordinatesForCurrentFrame();
+            drawCoordinatesOnField();
+        }
+
+        canvas.addEventListener("click", function (event) {
+            const rect = canvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            correctCoordinates(canvasX, canvasY);
+        });
+
+       
+        // ################# Everything about video control #################
         function pauseVideo() {
             video.pause();
             showCoordinatesForCurrentFrame();
+            drawCoordinatesOnField();
         }
 
         function nextFrame() {
             video.pause();
             video.currentTime += frameDuration;
             showCoordinatesForCurrentFrame();
+            drawCoordinatesOnField();
         }
 
         function prevFrame() {
             video.pause();
             video.currentTime -= frameDuration;
-            if (video.currentTime < 0) {
-                video.currentTime = 0;
-            }
+            if (video.currentTime < 0) video.currentTime = 0;
             showCoordinatesForCurrentFrame();
+            drawCoordinatesOnField();
         }
+
+        function resetCorrection() {
+            const currentFrame = getCurrentFrame();
+
+            if (correctedAllCoordinatesJS[currentFrame]) {
+                delete correctedAllCoordinatesJS[currentFrame];
+            }
+
+            showCoordinatesForCurrentFrame();
+            drawCoordinatesOnField();
+        }
+
+
+        // ############################################### SAVING THE COORD!S!!
+        // So once we cant to save, we can just recreate an array with the og coordinates for the frames
+        // we didnt correct. and we add the corrected ones for the frames we did correct!
+        function buildFinalCoordinatesArray() {
+            return allCoordinatesJS.map(coord => {
+                const corrected = correctedAllCoordinatesJS[coord.frame_id];
+
+                if (corrected) {
+                    return {
+                        frame_id: coord.frame_id,
+                        x: corrected.new_x,
+                        y: corrected.new_y
+                    };
+                }
+
+                return {
+                    frame_id: coord.frame_id,
+                    x: coord.x,
+                    y: coord.y
+                };
+            });
+        }
+
+
+        function saveCoordinates() {
+            const finalCoords = buildFinalCoordinatesArray();
+
+            fetch("{% url 'save_coordinates' video.id %}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ coordinates: finalCoords })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Coordonnées sauvergardées:\n${data.file}`);
+                } else {
+                    alert(`Erreur de sauvegarde: ${data.error}`);
+                }
+            })            
+        }
+
+        // Show first frame coordinates immediately bc without thisone we need to go to the second frame and then come back
+        // to the first one to see the coords
+        video.addEventListener("loadedmetadata", () => {
+        video.currentTime = 0; 
+        showCoordinatesForCurrentFrame();
+        drawCoordinatesOnField();
+    });
+
+
     </script>
 
 </body>
