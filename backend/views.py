@@ -1,5 +1,5 @@
 # backend/views.py
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Video, Coordinates
@@ -70,3 +70,18 @@ def viewer_page(request, video_id: int):
         "fps": fps,
         "allCoordinates": allCoordinatesJSON
     })
+
+
+@csrf_exempt
+def save_coordinates(request, video_id):
+
+    data = json.loads(request.body)
+    coordinates = data.get("coordinates", [])
+
+    server_file_path = f"media/{video_id}_coordinates_corrected.json"
+    with open(server_file_path, "w") as f:
+        json.dump(coordinates, f, indent=2)
+
+    return JsonResponse({"success": True, "file": server_file_path})
+
+    

@@ -26,6 +26,8 @@ urlpatterns = [
     path('', views.upload_page), 
     path('api/upload/', views.upload_video),
     path("viewer/<int:video_id>/", views.viewer_page, name="viewer_page"),
+    path("video/<int:video_id>/save/", views.save_coordinates, name="save_coordinates"),
+
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
