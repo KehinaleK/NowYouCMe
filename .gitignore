@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 frontend/webdemo/node_modules/
+frontend/test_file
 frontend/webdemo/dist/
 frontend/webdemo/dist-ssr/
 .env
