@@ -16,7 +16,7 @@ type Corrected = {
 type ApiVideoData = {
   success: boolean;
   video_id: number;
-  video_url: string; // "/media/..."
+  video_url: string; 
   fps: number;
   coordinates: Coord[];
 };
@@ -35,12 +35,11 @@ export default function WorkPage() {
   const [fps, setFps] = useState<number>(25);
   const [coords, setCoords] = useState<Coord[]>([]);
 
-  // frame_id -> corrected
   const [correctedMap, setCorrectedMap] = useState<Record<number, Corrected>>(
     {}
   );
 
-  // Fetch video data from Django
+
   useEffect(() => {
     if (!Number.isFinite(videoId)) return;
 
@@ -77,7 +76,7 @@ export default function WorkPage() {
     return coords.find((c) => c.frame_id === frame);
   }
 
-  // Canvas helpers (same as your JS)
+
   function canvasToVideoCoords(canvasX: number, canvasY: number) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -128,13 +127,13 @@ export default function WorkPage() {
     }
   }
 
-  // Call this when video pauses / frame changes / correction changes
+
   useEffect(() => {
     drawCoordinatesOnField();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [coords, correctedMap, fps]);
 
-  // Show first frame once metadata loaded (same idea as your template)
+
   function onLoadedMetadata() {
     const v = videoRef.current;
     if (!v) return;
@@ -142,7 +141,6 @@ export default function WorkPage() {
     drawCoordinatesOnField();
   }
 
-  // Controls (same as your JS)
   function pauseVideo() {
     const v = videoRef.current;
     if (!v) return;
@@ -205,8 +203,6 @@ export default function WorkPage() {
     const canvasY = e.clientY - rect.top;
 
     correctCoordinates(canvasX, canvasY);
-    // draw happens via state effect, but you can also call directly:
-    // drawCoordinatesOnField();
   }
 
   function buildFinalCoordinatesArray() {
@@ -235,7 +231,7 @@ export default function WorkPage() {
       .catch((e) => alert(String(e)));
   }
 
-  // Display text like your coords-content div
+
   const coordsText = useMemo(() => {
     const currentFrame = getCurrentFrame();
     const original = findOriginal(currentFrame);
@@ -250,18 +246,15 @@ export default function WorkPage() {
       text += `\nCoords corrigées x: ${corrected.new_x}, y: ${corrected.new_y}`;
     }
     return text;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords, correctedMap, fps]); // current frame changes via events, see below
 
-  // Update display/draw when time changes (so frame changes while scrubbing)
+  }, [coords, correctedMap, fps]); 
+
+
   function onTimeUpdate() {
     drawCoordinatesOnField();
-    // coordsText relies on getCurrentFrame; easiest is to force a rerender:
-    // (tiny hack: store a "tick" number)
     setTick((t) => t + 1);
   }
-  const [tick, setTick] = useState(0); // just to refresh coordsText when time changes
-  void tick;
+  const [tick, setTick] = useState(0); 
 
   if (loading) return <p style={{ padding: "2rem" }}>Loading…</p>;
   if (error) return <p style={{ padding: "2rem", color: "red" }}>{error}</p>;
@@ -272,17 +265,16 @@ export default function WorkPage() {
   
 return (
   <div className="work-page">
-    {/* Top row: left area + right sidebar */}
+
     <div className="work-grid">
-      {/* LEFT COLUMN */}
+    
       <section className="left-col">
-        {/* Navigation bar (not implemented yet) */}
+   
         <div className="nav-bar">
           <div className="nav-title">NAVIGATION</div>
           <div className="nav-hint">Trames / timeline controls later</div>
         </div>
 
-        {/* Canvas zone (upper view image + corrections) */}
         <div className="canvas-card">
           <div className="canvas-header">
             <h2>Vue terrain</h2>
@@ -301,9 +293,9 @@ return (
         </div>
       </section>
 
-      {/* RIGHT COLUMN */}
+  
       <aside className="right-col">
-        {/* Video */}
+     
         <div className="video-card">
           <div className="video-top">
             <h2>Vidéo</h2>
@@ -331,8 +323,7 @@ return (
           <div className="fps-info">FPS: {fps}</div>
         </div>
 
-        {/* Save + coordinates (bottom of sidebar) */}
-        <div className="side-panel">
+        {/* Save + coordinates (bottom of sidebar) */}       <div className="side-panel">
           <button className="save-btn" onClick={saveCoordinates}>
             Sauvegarder les coordonnées
           </button>
@@ -353,7 +344,7 @@ return (
         </div>
       </aside>
 
-      {/* BOTTOM ROW: TRAMES */}
+
       <section className="timeline">
         <div className="timeline-inner">
           <strong>TRAMES</strong>
