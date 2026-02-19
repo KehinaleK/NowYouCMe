@@ -1,50 +1,80 @@
-import pitchImage from "../../../assets/pitch_1024x865.jpg";
-import { useRef, useState } from "react";
-import type {MouseEvent} from "react";
+import fieldImage from "../../../assets/pitch_1303x1024.jpg";
+import { useRef } from "react";
+
+type Coord = {
+    x: number;
+    y: number;
+};
 
 type Props = {
-    x: number; // original image space (1303x1024)
-    y: number;
+    original?: Coord;
+    corrected?: Coord;
     onChange: (x: number, y: number) => void;
 };
 
-export function CorrectionPanel({ x, y, onChange }: Props) {
+export function CorrectionPanel({
+                                    original,
+                                    corrected,
+                                    onChange,
+                                }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const imgRef = useRef<HTMLImageElement>(null);
 
-    const [scale, setScale] = useState({ x: 1, y: 1 });
-
-    const handleImageLoad = () => {
-        if (!imgRef.current) return;
-
-        const renderedWidth = imgRef.current.clientWidth;
-        const renderedHeight = imgRef.current.clientHeight;
-
-        const naturalWidth = imgRef.current.naturalWidth;
-        const naturalHeight = imgRef.current.naturalHeight;
-
-        setScale({
-            x: renderedWidth / naturalWidth,
-            y: renderedHeight / naturalHeight,
-        });
-    };
-
-    const handleClick = (event: MouseEvent<HTMLDivElement>) => {
+    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!containerRef.current) return;
 
         const rect = containerRef.current.getBoundingClientRect();
 
-        const clickX = event.clientX - rect.left;
-        const clickY = event.clientY - rect.top;
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
 
-        const originalX = clickX / scale.x;
-        const originalY = clickY / scale.y;
+        const imgWidth = rect.width;
+        const imgHeight = rect.height;
 
-        onChange(originalX, originalY);
+        const videoX = Math.round((clickX / imgWidth) * 1024);
+        const videoY = Math.round((clickY / imgHeight) * 1024);
+
+        onChange(videoX, videoY);
     };
 
-    const mappedX = x * scale.x;
-    const mappedY = y * scale.y;
+    const renderMarker = (coord: Coord, color: string) => (
+        <div
+            style={{
+                position: "absolute",
+                left: `${(coord.x / 1024) * 100}%`,
+                top: `${(coord.y / 1024) * 100}%`,
+                transform: "translate(-50%, -50%)",
+                width: 14,
+                height: 14,
+                borderRadius: "50%",
+                border: `2px solid ${color}`,
+                backgroundColor: "transparent",
+                pointerEvents: "none",
+            }}
+        >
+            <div
+                style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: 0,
+                    width: 2,
+                    height: "100%",
+                    backgroundColor: color,
+                    transform: "translateX(-50%)",
+                }}
+            />
+            <div
+                style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: 0,
+                    width: "100%",
+                    height: 2,
+                    backgroundColor: color,
+                    transform: "translateY(-50%)",
+                }}
+            />
+        </div>
+    );
 
     return (
         <div
@@ -52,32 +82,19 @@ export function CorrectionPanel({ x, y, onChange }: Props) {
             onClick={handleClick}
             style={{
                 position: "relative",
-                display: "inline-block",
+                flex: 1,
                 cursor: "crosshair",
             }}
         >
-        <img
-            ref={imgRef}
-            src={pitchImage}
-            onLoad={handleImageLoad}
-            style={{
-                maxWidth: "100%",
-                height: "auto",
-                display: "block",
-            }}
-         />
-        <div
-            style={{
-                position: "absolute",
-                left: mappedX - 4,
-                top: mappedY - 4,
-                width: 8,
-                height: 8,
-                backgroundColor: "red",
-                borderRadius: "50%",
-                pointerEvents: "none",
-            }}
-        />
-    </div>
+            <img
+                src={fieldImage}
+                alt="Field"
+                style={{ width: "100%", display: "block" }}
+            />
+
+            {original && renderMarker(original, "limegreen")}
+
+            {corrected && renderMarker(corrected, "red")}
+        </div>
     );
 }

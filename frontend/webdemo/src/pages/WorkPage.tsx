@@ -1,116 +1,150 @@
-import {Link} from "react-router-dom";
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { JobHeader } from "../features/work/ui/JobHeader";
+import { useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { VideoPanel } from "../features/work/ui/VideoPanel";
 import { CorrectionPanel } from "../features/work/ui/CorrectionPanel";
-function formatTime(time: number) {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
 
-    const paddedMinutes = String(minutes).padStart(2, "0");
-    const paddedSeconds = String(seconds).padStart(2, "0");
+type FrameCoord = {
+    frame_id: number;
+    x: number;
+    y: number;
+};
 
-    return `${paddedMinutes}:${paddedSeconds}`;
-}
 export function WorkPage() {
     const { jobId } = useParams();
-    const navigate = useNavigate();
-    const [workstatus, setWorkStatus] = useState<"pending"|"done">("pending");
-    const [videoStatus, setVideoStatus]= useState<"sendingBackVideo" | "loading" | "done">("sendingBackVideo");
-    const [currentTime, setCurrentTime] = useState(0);
-    const demoVideoUrl = "/demo.mp4";
 
-    //Simulate video processing status changes.
+    const [videoUrl, setVideoUrl] = useState<string>("");
+    const [fps, setFps] = useState<number>(25);
+    const [currentTime, setCurrentTime] = useState<number>(0);
+
+    const [originalFrames, setOriginalFrames] = useState<FrameCoord[]>([]);
+    const [workingFrames, setWorkingFrames] = useState<FrameCoord[]>([]);
+
+    // 🔥 Fetch (mocked)
     useEffect(() => {
-        if (videoStatus !== "sendingBackVideo") return;
+        if (!jobId) return;
+        /*fetch(/api/video/${jobId}/coordinates/)
+        .then(res => res.json())
+        .then(data => {
+        setVideoUrl(data.video_url);
+        setFps(data.fps);
+        setOriginalFrames(data.coordinates);
+        setWorkingFrames(data.coordinates); // clone
+        }); */
 
-        const timer = setTimeout(() => {
-            setVideoStatus("loading");
-        }, 1000);
+        const mockData = {
+            video_url: "/demo.mp4",
+            fps: 25,
+            coordinates: Array.from({ length: 200 }, (_, i) => ({
+                frame_id: i,
+                x: 200 + i,
+                y: 300 + i,
+            })),
+        };
 
-        return () => clearTimeout(timer);
-    }, [videoStatus]);
-    useEffect(() => {
-        if (videoStatus !== "loading") return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setVideoUrl(mockData.video_url);
+        setFps(mockData.fps);
+        setOriginalFrames(mockData.coordinates);
+        setWorkingFrames(mockData.coordinates); // important
+    }, [jobId]);
 
-        const timer = setTimeout(() => {
-            setVideoStatus("done");
-        }, 2000);
+    // 🔥 Compute current frame
+    const currentFrame = useMemo(() => {
+        return Math.round(currentTime * fps);
+    }, [currentTime, fps]);
 
-        return () => clearTimeout(timer);
-    }, [videoStatus]);
+    // 🔥 Get original & corrected for this frame
+    const original = useMemo(() => {
+        return originalFrames.find(f => f.frame_id === currentFrame);
+    }, [originalFrames, currentFrame]);
 
-    //Check job status and navigate to result page when done.
-    //TODO: Check for real job status from user.
-    const hanleGoResult = () => {
-        if (workstatus !== "done") return;
-        navigate(`/result/${jobId}`);
-    }
-    const [ballPosition, setBallPosition] = useState({
-        x: 0,
-        y: 0,
-    });
+    const corrected = useMemo(() => {
+        return workingFrames.find(f => f.frame_id === currentFrame);
+    }, [workingFrames, currentFrame]);
+
+    // 🔥 Handle correction click
+    const handleCorrection = (x: number, y: number) => {
+        setWorkingFrames(prev => {
+            const index = prev.findIndex(f => f.frame_id === currentFrame);
+
+            if (index !== -1) {
+                const updated = [...prev];
+                updated[index] = { ...updated[index], x, y };
+                return updated;
+            } else {
+                return [...prev, { frame_id: currentFrame, x, y }];
+            }
+        });
+    };
+
+    // 🔥 Save (mock)
+    const saveCoordinates = () => {
+        console.log("FINAL DATA:", workingFrames);
+        alert("Saved locally (mock)");
+        setOriginalFrames(workingFrames); // commit
+        /*fetch(/video/${jobId}/save/,
+        { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coordinates: workingFrames }),
+        })
+        .then(res => res.json())
+        .then(data =>
+        { if (data.success)
+        { alert("Saved!");
+          setOriginalFrames(workingFrames);
+          // commit locally } }); */
+    };
+
+    // 🔥 Discard
+    const discardChanges = () => {
+        setWorkingFrames(originalFrames);
+    };
 
     return (
         <main>
-            <JobHeader jobId={jobId} status={videoStatus} />
-            <div
-                style={{
-                    display: "flex",
-                    gap: "24px",
-                    alignItems: "flex-start",
-                }}
-            >
-                <section
-                    style={{
-                        flex: 1,
-                        minWidth: 400,
-                    }}
-                >
+            <h1>Work Page</h1>
+
+            <div style={{ display: "flex", gap: "24px" }}>
                 <CorrectionPanel
-                    x={ballPosition.x}
-                    y={ballPosition.y}
-                    onChange={(x, y) => {
-                    setBallPosition({
-                    x: Math.round(x),
-                    y: Math.round(y),
-                    })}}
-
+                    original={
+                        original
+                            ? { x: original.x, y: original.y }
+                            : undefined
+                    }
+                    corrected={
+                        corrected
+                            ? { x: corrected.x, y: corrected.y }
+                            : undefined
+                    }
+                    onChange={handleCorrection}
                 />
-                </section>
+
                 <VideoPanel
-                    src={demoVideoUrl}
-                    onPause={(time) => {
-                        setCurrentTime(time);}}
-                    onTimeUpdate={(time) => {
-                    setCurrentTime(time);}}
+                    src={videoUrl}
+                    onPause={setCurrentTime}
+                    onTimeUpdate={setCurrentTime}
                 />
-
             </div>
-            <div style={{ marginTop: 20 }}>
-                <p>{formatTime(currentTime)} | X: {ballPosition.x} | Y: {ballPosition.y}</p>
-            </div>
-            <section>
-                <h2>Work in progress</h2>
-                <p>Job ID: {jobId}</p>
 
-                <p>Status: {videoStatus}</p>
-                {videoStatus === "loading" && <p>Processing video…</p>}
-                <button onClick={()=> setWorkStatus("done")} disabled={videoStatus !== "done"}>
-                    Finish
-                </button>
-                <button onClick={hanleGoResult} disabled={workstatus !== "done"}>
-                    Go to result
-                </button>
-            </section>
-            <section>
-                <h2> Go Home</h2>
-                <Link to="/">
-                    <button>Go to Home Page</button>
-                </Link>
-            </section>
+            <p>
+                Frame: {currentFrame}
+                {" | "}
+                Original:{" "}
+                {original ? `(${original.x}, ${original.y})` : "N/A"}
+                {" | "}
+                Corrected:{" "}
+                {corrected ? `(${corrected.x}, ${corrected.y})` : "N/A"}
+            </p>
+
+            <button onClick={saveCoordinates}>
+                Save Coordinates
+            </button>
+
+            <button onClick={discardChanges} style={{ marginLeft: 10 }}>
+                Discard Changes
+            </button>
         </main>
     );
 }
+
 export default WorkPage;
