@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import "../styles/HomePage.css"
 export default function HomePageUpload() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [coordsFile, setCoordsFile] = useState<File | null>(null);
@@ -19,6 +19,8 @@ export default function HomePageUpload() {
     fetch("http://localhost:8000/api/upload/", {
       method: "POST",
       body: formData,
+      // if you use cookies/session auth, you may need:
+      // credentials: "include",
     })
       .then((r) => r.json())
       .then((data) => {
@@ -33,15 +35,59 @@ export default function HomePageUpload() {
   }
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1>Upload</h1>
+    <div>
+      <header>
+        <h1>Upload Video and Coordinates files</h1>
+        <div className="divider" />
+      </header>
 
-      <input type="file" onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)} />
-      <input type="file" onChange={(e) => setCoordsFile(e.target.files?.[0] ?? null)} />
+      <div className="upload-wrapper">
+        <div className="upload-block">
+          <h2>Video File</h2>
 
-      <button onClick={upload} disabled={loading || !videoFile || !coordsFile}>
-        {loading ? "Uploading..." : "Upload"}
-      </button>
-    </main>
+          <label className="custom-file-btn">
+            Select Video
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+
+          <div className="file-name">
+            {videoFile ? videoFile.name : "No file selected"}
+          </div>
+        </div>
+
+        <div className="upload-block">
+          <h2>Coordinates File</h2>
+
+          <label className="custom-file-btn">
+            Select Data
+            <input
+              type="file"
+              onChange={(e) => setCoordsFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+
+          <div className="file-name">
+            {coordsFile ? coordsFile.name : "No file selected"}
+          </div>
+        </div>
+      </div>
+
+      <div className="submit-section">
+        <button
+          className="main-btn"
+          onClick={upload}
+          disabled={loading || !videoFile || !coordsFile}
+        >
+          {loading ? "Uploading..." : "Upload Files"}
+        </button>
+      </div>
+
+      {/* Optional: keep a result area like before */}
+      {/* <div id="result"></div> */}
+    </div>
   );
 }

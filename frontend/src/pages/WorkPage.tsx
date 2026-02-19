@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import "../styles/WorkPage.css";
+
 
 type Coord = { frame_id: number; x: number; y: number };
 
@@ -267,59 +269,98 @@ export default function WorkPage() {
   const currentFrame = getCurrentFrame();
   const hasCorrection = !!correctedMap[currentFrame];
 
-  return (
-    <main style={{ padding: "2rem" }}>
-      <h1>Video viewer</h1>
+  
+return (
+  <div className="work-page">
+    {/* Top row: left area + right sidebar */}
+    <div className="work-grid">
+      {/* LEFT COLUMN */}
+      <section className="left-col">
+        {/* Navigation bar (not implemented yet) */}
+        <div className="nav-bar">
+          <div className="nav-title">NAVIGATION</div>
+          <div className="nav-hint">Trames / timeline controls later</div>
+        </div>
 
-      <p>
-        <Link to="/">⬅ Importer un nouveau projet</Link>
-      </p>
+        {/* Canvas zone (upper view image + corrections) */}
+        <div className="canvas-card">
+          <div className="canvas-header">
+            <h2>Vue terrain</h2>
+            <p>Clique pour corriger la position</p>
+          </div>
 
-      {/* Video */}
-      <video
-        ref={videoRef}
-        width={400}
-        controls
-        onLoadedMetadata={onLoadedMetadata}
-        onPause={pauseVideo}
-        onTimeUpdate={onTimeUpdate}
-      >
-        <source src={videoUrl} />
-        Your browser does not support the video tag.
-      </video>
+          <div className="canvas-wrap">
+            <canvas
+              ref={canvasRef}
+              width={1050}
+              height={680}
+              onClick={onCanvasClick}
+              className="field-canvas"
+            />
+          </div>
+        </div>
+      </section>
 
-      {/* Coordinates display */}
-      <div style={{ marginTop: 10, padding: 10, border: "1px solid black", width: 420 }}>
-        <strong>Coordonnées:</strong>
-        <pre style={{ whiteSpace: "pre-line" }}>{coordsText}</pre>
+      {/* RIGHT COLUMN */}
+      <aside className="right-col">
+        {/* Video */}
+        <div className="video-card">
+          <div className="video-top">
+            <h2>Vidéo</h2>
+            <Link className="back-link" to="/">⬅ Importer un nouveau projet</Link>
+          </div>
 
-        <button
-          onClick={resetCorrection}
-          style={{ marginTop: 6, display: hasCorrection ? "inline-block" : "none" }}
-        >
-          Réinitialiser la correction
-        </button>
-      </div>
+          <video
+            ref={videoRef}
+            controls
+            onLoadedMetadata={onLoadedMetadata}
+            onPause={pauseVideo}
+            onTimeUpdate={onTimeUpdate}
+            className="video"
+          >
+            <source src={videoUrl} />
+            Your browser does not support the video tag.
+          </video>
 
-      {/* Canvas */}
-      <canvas
-        ref={canvasRef}
-        width={1050}
-        height={680}
-        onClick={onCanvasClick}
-        style={{ border: "1px solid black", display: "block", marginTop: 20 }}
-      />
+          <div className="video-controls">
+            <button onClick={pauseVideo}>Pause</button>
+            <button onClick={prevFrame}>⬅</button>
+            <button onClick={nextFrame}>➡</button>
+          </div>
 
-      <button onClick={saveCoordinates} style={{ marginTop: 15 }}>
-        Sauvegarder les coordonnées
-      </button>
+          <div className="fps-info">FPS: {fps}</div>
+        </div>
 
-      <p>FPS: {fps}</p>
+        {/* Save + coordinates (bottom of sidebar) */}
+        <div className="side-panel">
+          <button className="save-btn" onClick={saveCoordinates}>
+            Sauvegarder les coordonnées
+          </button>
 
-      {/* Controls */}
-      <button onClick={pauseVideo}>Pause</button>
-      <button onClick={prevFrame}>⬅</button>
-      <button onClick={nextFrame}>➡</button>
-    </main>
-  );
+          <div className="coords-box">
+            <div className="coords-title">Coordonnées</div>
+
+            <pre className="coords-text">{coordsText}</pre>
+
+            <button
+              className="reset-btn"
+              onClick={resetCorrection}
+              style={{ display: hasCorrection ? "inline-block" : "none" }}
+            >
+              Réinitialiser la correction
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* BOTTOM ROW: TRAMES */}
+      <section className="timeline">
+        <div className="timeline-inner">
+          <strong>TRAMES</strong>
+          <span className="timeline-hint"> (à implémenter)</span>
+        </div>
+      </section>
+    </div>
+  </div>
+);
 }

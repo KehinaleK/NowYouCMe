@@ -1,0 +1,268 @@
+.work-page {
+    min-height: 100vh;
+    background: #f4f4f4;
+    color: #1e1e1e;
+    padding: 24px;
+    font-family: "Segoe UI", sans-serif;
+  }
+  
+
+  .work-grid {
+    display: grid;
+  
+    grid-template-columns: 1fr clamp(280px, 30vw, 420px);
+    grid-template-rows: 1fr 120px;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+ 
+  .timeline {
+    grid-column: 1 / -1;
+  }
+  
+
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0; 
+  }
+  
+  .nav-bar {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  
+  .nav-title {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  
+  .nav-hint {
+    font-size: 12px;
+    color: #666;
+  }
+  
+
+  .canvas-card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  
+
+    flex: 1;
+    min-height: 0;
+  }
+  
+  .canvas-header h2 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  
+  .canvas-header p {
+    font-size: 12px;
+    color: #666;
+  }
+  
+
+  .canvas-wrap {
+    flex: 1;
+    min-height: 0;
+  
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  
+    overflow: auto;
+    border-radius: 10px;
+    background: #fafafa;
+    border: 1px solid #eee;
+    padding: 12px;
+  }
+  
+  .field-canvas {
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    background: white;
+  }
+  
+
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+  
+
+  .video-card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .video-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+  
+  .video-top h2 {
+    font-size: 16px;
+  }
+  
+  .back-link {
+    font-size: 12px;
+    text-decoration: none;
+    color: #555;
+  }
+  .back-link:hover {
+    color: #000;
+  }
+  
+  .video {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  }
+  
+  .video-controls {
+    display: flex;
+    gap: 10px;
+  }
+  
+
+  .work-grid button {
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #222;
+    color: white;
+    transition: 0.2s ease;
+  }
+  
+  .work-grid button:hover {
+    background: #000;
+  }
+  
+  .work-grid button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+
+  .fps-info {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .side-panel {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  
+
+    flex: 1;
+    min-height: 0;
+  }
+  
+  .save-btn {
+    width: 100%;
+  }
+  
+
+  .coords-box {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 12px;
+  
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  
+    flex: 1;
+    min-height: 0;
+  }
+  
+  .coords-title {
+    font-weight: 700;
+    font-size: 13px;
+  }
+  
+  .coords-text {
+    white-space: pre-line;
+    font-size: 13px;
+    color: #333;
+    overflow: auto;
+    margin: 0;
+  }
+  
+
+  .reset-btn {
+    background: #ddd !important;
+    color: #111 !important;
+  }
+  .reset-btn:hover {
+    background: #ccc !important;
+  }
+  
+
+  .timeline {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .timeline-inner {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+  
+  .timeline-hint {
+    font-size: 12px;
+    color: #666;
+    margin-left: 6px;
+  }
+  
+
+  @media (max-width: 900px) {
+    .work-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+    }
+  
+    .timeline {
+      grid-column: auto;
+    }
+  }
+  
