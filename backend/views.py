@@ -1,87 +1,118 @@
 # backend/views.py
-from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
+
+from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+
 from .models import Video, Coordinates
 from .utils import parse_coordinates
+
 import json
 import cv2
+import os
 
-def upload_page(request):
-    return render(request, 'upload_test.html')
+
+# --------------------------------------------------
+# UPLOAD VIDEO + COORDINATES
+# --------------------------------------------------
 
 @csrf_exempt
+@require_POST
 def upload_video(request):
-
-    video_file = request.FILES.get('video')
-    txt_file = request.FILES.get('coordinates')
+    video_file = request.FILES.get("video")
+    txt_file = request.FILES.get("coordinates")
 
     if not video_file or not txt_file:
-        return JsonResponse({'success': False, 'error': 'Missing video or coordinates file.'}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "Missing video or coordinates file."},
+            status=400,
+        )
 
-
-    ## Creating the video instance
+    # Create video instance
     video = Video.objects.create(
         file=video_file,
         fileName=video_file.name,
     )
 
-
+    # Extract FPS using OpenCV
     cap = cv2.VideoCapture(video.file.path)
     fps = cap.get(cv2.CAP_PROP_FPS)
-    # total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cap.release()
+
     video.fps = fps
     video.save()
 
-    
-    ## Then, parsing the coordinates
+    # Parse and store coordinates
     coords = parse_coordinates(txt_file)
     for c in coords:
         Coordinates.objects.create(
             video=video,
-            frame_id=c['frame_id'],
-            x=c['x'],
-            y=c['y']
+            frame_id=c["frame_id"],
+            x=c["x"],
+            y=c["y"],
         )
-    
+
     return JsonResponse({
-        'success': True,
-        'video_id': video.id
+        "success": True,
+        "video_id": video.id,
     })
 
 
+# --------------------------------------------------
+# GET VIDEO DATA (replaces viewer.html)
+# --------------------------------------------------
 
-def viewer_page(request, video_id: int):
-    
+@require_GET
+def get_video_data(request, video_id: int):
     video = get_object_or_404(Video, id=video_id)
-    # fps peut être null si non calculé → on met une valeur de secours
+
     fps = video.fps if video.fps and video.fps > 0 else 25.0
 
+    coords_qs = Coordinates.objects.filter(video=video).order_by("frame_id")
+    coords = [
+        {"frame_id": c.frame_id, "x": c.x, "y": c.y}
+        for c in coords_qs
+    ]
 
-    allCoordinates = Coordinates.objects.filter(video=video).order_by('frame_id')
-
-    allCoordinates = [{'frame_id': c.frame_id, 'x': c.x, 'y': c.y} for c in allCoordinates]
-    allCoordinatesJSON = json.dumps(allCoordinates)
-    
-
-    return render(request, "viewer.html", {
-        "video": video,
+    return JsonResponse({
+        "success": True,
+        "video_id": video.id,
+        "video_url": video.file.url,   # e.g. /media/myvideo.mp4
         "fps": fps,
-        "allCoordinates": allCoordinatesJSON
+        "coordinates": coords,
     })
 
 
-@csrf_exempt
-def save_coordinates(request, video_id):
+# --------------------------------------------------
+# SAVE CORRECTED COORDINATES
+# --------------------------------------------------
 
-    data = json.loads(request.body)
+@csrf_exempt
+@require_POST
+def save_coordinates(request, video_id: int):
+    video = get_object_or_404(Video, id=video_id)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"success": False, "error": "Invalid JSON body"},
+            status=400,
+        )
+
     coordinates = data.get("coordinates", [])
 
-    server_file_path = f"media/{video_id}_coordinates_corrected.json"
-    with open(server_file_path, "w") as f:
+    # Save corrected coordinates as JSON on server
+    output_path = os.path.join(
+        "media",
+        f"{video_id}_coordinates_corrected.json"
+    )
+
+    with open(output_path, "w") as f:
         json.dump(coordinates, f, indent=2)
 
-    return JsonResponse({"success": True, "file": server_file_path})
-
-    
+    return JsonResponse({
+        "success": True,
+        "file": output_path,
+    })
