@@ -12,10 +12,7 @@ import json
 import cv2
 import os
 
-
-# --------------------------------------------------
 # UPLOAD VIDEO + COORDINATES
-# --------------------------------------------------
 
 @csrf_exempt
 @require_POST
@@ -29,13 +26,12 @@ def upload_video(request):
             status=400,
         )
 
-    # Create video instance
     video = Video.objects.create(
         file=video_file,
         fileName=video_file.name,
     )
 
-    # Extract FPS using OpenCV
+
     cap = cv2.VideoCapture(video.file.path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     cap.release()
@@ -43,7 +39,7 @@ def upload_video(request):
     video.fps = fps
     video.save()
 
-    # Parse and store coordinates
+  
     coords = parse_coordinates(txt_file)
     for c in coords:
         Coordinates.objects.create(
@@ -59,9 +55,9 @@ def upload_video(request):
     })
 
 
-# --------------------------------------------------
-# GET VIDEO DATA (replaces viewer.html)
-# --------------------------------------------------
+
+# GET VIDEO DATA 
+
 
 @require_GET
 def get_video_data(request, video_id: int):
@@ -78,15 +74,14 @@ def get_video_data(request, video_id: int):
     return JsonResponse({
         "success": True,
         "video_id": video.id,
-        "video_url": video.file.url,   # e.g. /media/myvideo.mp4
+        "video_url": video.file.url,  
         "fps": fps,
         "coordinates": coords,
     })
 
 
-# --------------------------------------------------
 # SAVE CORRECTED COORDINATES
-# --------------------------------------------------
+
 
 @csrf_exempt
 @require_POST
@@ -103,7 +98,7 @@ def save_coordinates(request, video_id: int):
 
     coordinates = data.get("coordinates", [])
 
-    # Save corrected coordinates as JSON on server
+   
     output_path = os.path.join(
         "media",
         f"{video_id}_coordinates_corrected.json"

@@ -1,11 +1,80 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/HomePage.css"
+import "../styles/HomePage.css";
+
 export default function HomePageUpload() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [coordsFile, setCoordsFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".mkv", ".avi", ".mov"];
+  const ALLOWED_DATA_EXTENSIONS = [".txt"];
+
+
+  const ALLOWED_VIDEO_MIMES = new Set([
+    "video/mp4",
+    "video/x-matroska",
+    "video/quicktime",
+    "video/avi", 
+    "video/x-msvideo", 
+    "application/mp4", 
+  ]);
+
+  const ALLOWED_DATA_MIMES = new Set(["text/plain"]);
+
+
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const name = file.name.toLowerCase();
+    const extOk = ALLOWED_VIDEO_EXTENSIONS.some((ext) => name.endsWith(ext));
+
+    const mime = (file.type || "").toLowerCase();
+    const mimeOk = mime === "" ? true : ALLOWED_VIDEO_MIMES.has(mime);
+
+    if (extOk && mimeOk) {
+      setVideoFile(file);
+    } else {
+      alert(
+        `Fichier vidéo invalide.\n` +
+          `Nom: ${file.name}\n` +
+          `Type détecté: ${file.type || "(vide)"}\n` +
+          `Formats acceptés: ${ALLOWED_VIDEO_EXTENSIONS.join(", ")}`
+      );
+      setVideoFile(null);
+      e.target.value = "";
+    }
+
+   
+  };
+
+  const handleCoordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const name = file.name.toLowerCase();
+    const extOk = ALLOWED_DATA_EXTENSIONS.some((ext) => name.endsWith(ext));
+
+    const mime = (file.type || "").toLowerCase();
+
+    const mimeOk = mime === "" ? true : ALLOWED_DATA_MIMES.has(mime);
+
+    if (extOk && mimeOk) {
+      setCoordsFile(file);
+    } else {
+      alert(
+        `Fichier de coordonnées invalide.\n` +
+          `Nom: ${file.name}\n` +
+          `Type détecté: ${file.type || "(vide)"}\n` +
+          `Formats acceptés: ${ALLOWED_DATA_EXTENSIONS.join(", ")}`
+      );
+      setCoordsFile(null);
+      e.target.value = "";
+    }
+
+  };
 
   function upload() {
     if (!videoFile || !coordsFile) return;
@@ -19,8 +88,6 @@ export default function HomePageUpload() {
     fetch("http://localhost:8000/api/upload/", {
       method: "POST",
       body: formData,
-      // if you use cookies/session auth, you may need:
-      // credentials: "include",
     })
       .then((r) => r.json())
       .then((data) => {
@@ -37,20 +104,21 @@ export default function HomePageUpload() {
   return (
     <div>
       <header>
-        <h1>Upload Video and Coordinates files</h1>
+        <h1>Choisissez une vidéo et les coordonnées correspondantes</h1>
         <div className="divider" />
       </header>
 
       <div className="upload-wrapper">
         <div className="upload-block">
-          <h2>Video File</h2>
+          <h2>Fichier vidéo</h2>
 
           <label className="custom-file-btn">
-            Select Video
+            Sélectionner vidéo
             <input
               type="file"
-              accept="video/*"
-              onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+            
+              accept="video/mp4,video/*,.mp4,.mkv,.avi,.mov"
+              onChange={handleVideoChange}
             />
           </label>
 
@@ -60,13 +128,14 @@ export default function HomePageUpload() {
         </div>
 
         <div className="upload-block">
-          <h2>Coordinates File</h2>
+          <h2>Fichier de coordonnées</h2>
 
           <label className="custom-file-btn">
-            Select Data
+            Sélectionner coordonnées
             <input
               type="file"
-              onChange={(e) => setCoordsFile(e.target.files?.[0] ?? null)}
+              accept="text/plain,.txt"
+              onChange={handleCoordsChange}
             />
           </label>
 
@@ -85,9 +154,6 @@ export default function HomePageUpload() {
           {loading ? "Uploading..." : "Upload Files"}
         </button>
       </div>
-
-      {/* Optional: keep a result area like before */}
-      {/* <div id="result"></div> */}
     </div>
   );
 }

@@ -17,6 +17,8 @@ def parse_coordinates(file):
 
             allCoordinates.append({'frame_id' : frame_id, 'x' : x, 'y' : y})
             frame_id += 1 
+
+    allCoordinates = sorted(allCoordinates, key=lambda x: x['frame_id'])
     
     return allCoordinates
 

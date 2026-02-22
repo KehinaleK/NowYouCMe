@@ -6,13 +6,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Home (upload) page */}
         <Route path="/" element={<HomePageUpload />} />
 
-        {/* Work page (viewer/editor) */}
         <Route path="/work/:id" element={<WorkPage />} />
 
-        {/* Optional: redirect unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

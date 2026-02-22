@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import "../styles/WorkPage.css";
-
 
 type Coord = { frame_id: number; x: number; y: number };
 
@@ -35,9 +34,13 @@ export default function WorkPage() {
   const [fps, setFps] = useState<number>(25);
   const [coords, setCoords] = useState<Coord[]>([]);
 
+
   const [correctedMap, setCorrectedMap] = useState<Record<number, Corrected>>(
     {}
   );
+
+  
+  const [currentFrame, setCurrentFrame] = useState(0);
 
 
   useEffect(() => {
@@ -72,11 +75,15 @@ export default function WorkPage() {
     return Math.round(v.currentTime * (fps || 25));
   }
 
+  function syncCurrentFrame() {
+    setCurrentFrame(getCurrentFrame());
+  }
+
   function findOriginal(frame: number) {
     return coords.find((c) => c.frame_id === frame);
   }
 
-
+ 
   function canvasToVideoCoords(canvasX: number, canvasY: number) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -89,7 +96,12 @@ export default function WorkPage() {
     };
   }
 
-  function drawCross(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+  function drawCross(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    color: string
+  ) {
     ctx.beginPath();
     ctx.moveTo(x, y - 20);
     ctx.lineTo(x, y + 20);
@@ -100,7 +112,7 @@ export default function WorkPage() {
     ctx.stroke();
   }
 
-  function drawCoordinatesOnField() {
+  function drawCoordinatesOnField(frameOverride?: number) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -111,15 +123,15 @@ export default function WorkPage() {
 
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    const currentFrame = getCurrentFrame();
-    const original = findOriginal(currentFrame);
+    const frame = frameOverride ?? getCurrentFrame();
+    const original = findOriginal(frame);
     if (!original) return;
 
     const ox = (original.x / 1024) * canvasWidth;
     const oy = (original.y / 1024) * canvasHeight;
     drawCross(ctx, ox, oy, "red");
 
-    const corrected = correctedMap[currentFrame];
+    const corrected = correctedMap[frame];
     if (corrected) {
       const cx = (corrected.new_x / 1024) * canvasWidth;
       const cy = (corrected.new_y / 1024) * canvasHeight;
@@ -127,24 +139,29 @@ export default function WorkPage() {
     }
   }
 
-
+  
   useEffect(() => {
-    drawCoordinatesOnField();
+    drawCoordinatesOnField(currentFrame);
 
-  }, [coords, correctedMap, fps]);
-
+  }, [coords, correctedMap, fps, currentFrame]);
 
   function onLoadedMetadata() {
     const v = videoRef.current;
     if (!v) return;
     v.currentTime = 0;
-    drawCoordinatesOnField();
+
+    requestAnimationFrame(() => {
+      syncCurrentFrame();
+      drawCoordinatesOnField();
+    });
   }
+
 
   function pauseVideo() {
     const v = videoRef.current;
     if (!v) return;
     v.pause();
+    syncCurrentFrame();
     drawCoordinatesOnField();
   }
 
@@ -153,7 +170,11 @@ export default function WorkPage() {
     if (!v) return;
     v.pause();
     v.currentTime += frameDuration;
-    drawCoordinatesOnField();
+
+    requestAnimationFrame(() => {
+      syncCurrentFrame();
+      drawCoordinatesOnField();
+    });
   }
 
   function prevFrame() {
@@ -162,11 +183,14 @@ export default function WorkPage() {
     v.pause();
     v.currentTime -= frameDuration;
     if (v.currentTime < 0) v.currentTime = 0;
-    drawCoordinatesOnField();
+
+    requestAnimationFrame(() => {
+      syncCurrentFrame();
+      drawCoordinatesOnField();
+    });
   }
 
   function resetCorrection() {
-    const currentFrame = getCurrentFrame();
     setCorrectedMap((prev) => {
       if (!prev[currentFrame]) return prev;
       const copy = { ...prev };
@@ -176,22 +200,24 @@ export default function WorkPage() {
   }
 
   function correctCoordinates(canvasX: number, canvasY: number) {
-    const currentFrame = getCurrentFrame();
-    const original = findOriginal(currentFrame);
+    const frame = getCurrentFrame();
+    const original = findOriginal(frame);
     if (!original) return;
 
     const { x, y } = canvasToVideoCoords(canvasX, canvasY);
 
     setCorrectedMap((prev) => ({
       ...prev,
-      [currentFrame]: {
-        frame_id: currentFrame,
+      [frame]: {
+        frame_id: frame,
         old_x: original.x,
         old_y: original.y,
         new_x: x,
         new_y: y,
       },
     }));
+
+    setCurrentFrame(frame);
   }
 
   function onCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
@@ -209,7 +235,11 @@ export default function WorkPage() {
     return coords.map((coord) => {
       const corrected = correctedMap[coord.frame_id];
       if (corrected) {
-        return { frame_id: coord.frame_id, x: corrected.new_x, y: corrected.new_y };
+        return {
+          frame_id: coord.frame_id,
+          x: corrected.new_x,
+          y: corrected.new_y,
+        };
       }
       return { frame_id: coord.frame_id, x: coord.x, y: coord.y };
     });
@@ -233,11 +263,10 @@ export default function WorkPage() {
 
 
   const coordsText = useMemo(() => {
-    const currentFrame = getCurrentFrame();
     const original = findOriginal(currentFrame);
     const corrected = correctedMap[currentFrame];
 
-    if (!original) return "x: -, y: -";
+    if (!original) return `FRAME ${currentFrame}\nx: -, y: -`;
 
     let text = `FRAME ${currentFrame}\n`;
     text += `Coords originales x: ${original.x}, y: ${original.y}`;
@@ -246,112 +275,106 @@ export default function WorkPage() {
       text += `\nCoords corrigées x: ${corrected.new_x}, y: ${corrected.new_y}`;
     }
     return text;
+  }, [currentFrame, coords, correctedMap]);
 
-  }, [coords, correctedMap, fps]); 
-
-
+  
   function onTimeUpdate() {
+    syncCurrentFrame();
     drawCoordinatesOnField();
-    setTick((t) => t + 1);
   }
-  const [tick, setTick] = useState(0); 
 
   if (loading) return <p style={{ padding: "2rem" }}>Loading…</p>;
   if (error) return <p style={{ padding: "2rem", color: "red" }}>{error}</p>;
 
-  const currentFrame = getCurrentFrame();
   const hasCorrection = !!correctedMap[currentFrame];
 
-  
-return (
-  <div className="work-page">
-
-    <div className="work-grid">
-    
-      <section className="left-col">
+  return (
+    <div className="work-page">
+      <div className="work-grid">
    
-        <div className="nav-bar">
-          <div className="nav-title">NAVIGATION</div>
-          <div className="nav-hint">Trames / timeline controls later</div>
-        </div>
-
-        <div className="canvas-card">
-          <div className="canvas-header">
-            <h2>Vue terrain</h2>
-            <p>Clique pour corriger la position</p>
+        <section className="left-col">
+          <div className="nav-bar">
+            <div className="nav-title">NAVIGATION</div>
+            <div className="nav-hint">Trames / timeline controls later</div>
           </div>
 
-          <div className="canvas-wrap">
-            <canvas
-              ref={canvasRef}
-              width={1050}
-              height={680}
-              onClick={onCanvasClick}
-              className="field-canvas"
-            />
-          </div>
-        </div>
-      </section>
+          <div className="canvas-card">
+            <div className="canvas-header">
+              <h2>Vue terrain</h2>
+              <p>Clique pour corriger la position</p>
+            </div>
 
-  
-      <aside className="right-col">
+            <div className="canvas-wrap">
+              <canvas
+                ref={canvasRef}
+                width={1050}
+                height={680}
+                onClick={onCanvasClick}
+                className="field-canvas"
+              />
+            </div>
+          </div>
+        </section>
+
      
-        <div className="video-card">
-          <div className="video-top">
-            <h2>Vidéo</h2>
-            <Link className="back-link" to="/">⬅ Importer un nouveau projet</Link>
-          </div>
+        <aside className="right-col">
+          <div className="video-card">
+            <div className="video-top">
+              <h2>Vidéo</h2>
+              <Link className="back-link" to="/">
+                ⬅ Importer un nouveau projet
+              </Link>
+            </div>
 
-          <video
-            ref={videoRef}
-            controls
-            onLoadedMetadata={onLoadedMetadata}
-            onPause={pauseVideo}
-            onTimeUpdate={onTimeUpdate}
-            className="video"
-          >
-            <source src={videoUrl} />
-            Your browser does not support the video tag.
-          </video>
-
-          <div className="video-controls">
-            <button onClick={pauseVideo}>Pause</button>
-            <button onClick={prevFrame}>⬅</button>
-            <button onClick={nextFrame}>➡</button>
-          </div>
-
-          <div className="fps-info">FPS: {fps}</div>
-        </div>
-
-        {/* Save + coordinates (bottom of sidebar) */}       <div className="side-panel">
-          <button className="save-btn" onClick={saveCoordinates}>
-            Sauvegarder les coordonnées
-          </button>
-
-          <div className="coords-box">
-            <div className="coords-title">Coordonnées</div>
-
-            <pre className="coords-text">{coordsText}</pre>
-
-            <button
-              className="reset-btn"
-              onClick={resetCorrection}
-              style={{ display: hasCorrection ? "inline-block" : "none" }}
+            <video
+              ref={videoRef}
+              controls
+              onLoadedMetadata={onLoadedMetadata}
+              onPause={pauseVideo}
+              onTimeUpdate={onTimeUpdate}
+              className="video"
             >
-              Réinitialiser la correction
-            </button>
+              <source src={videoUrl} />
+              Your browser does not support the video tag.
+            </video>
+
+            <div className="video-controls">
+              <button onClick={pauseVideo}>Pause</button>
+              <button onClick={prevFrame}>⬅</button>
+              <button onClick={nextFrame}>➡</button>
+            </div>
+
+            <div className="fps-info">FPS: {fps}</div>
           </div>
-        </div>
-      </aside>
 
+          <div className="side-panel">
+            <button className="save-btn" onClick={saveCoordinates}>
+              Sauvegarder les coordonnées
+            </button>
 
-      <section className="timeline">
-        <div className="timeline-inner">
-          <strong>TRAMES</strong>
-          <span className="timeline-hint"> (à implémenter)</span>
-        </div>
-      </section>
+            <div className="coords-box">
+              <div className="coords-title">Coordonnées</div>
+              <pre className="coords-text">{coordsText}</pre>
+
+              <button
+                className="reset-btn"
+                onClick={resetCorrection}
+                style={{ display: hasCorrection ? "inline-block" : "none" }}
+              >
+                Réinitialiser la correction
+              </button>
+            </div>
+          </div>
+        </aside>
+
+   
+        <section className="timeline">
+          <div className="timeline-inner">
+            <strong>TRAMES</strong>
+            <span className="timeline-hint"> (à implémenter)</span>
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
-);
+  );
 }
