@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import "../styles/WorkPage.css";
 
+const API_URL = "http://localhost:8000";
+
 type Coord = { frame_id: number; x: number; y: number };
 
 type Corrected = {
@@ -34,6 +36,8 @@ export default function WorkPage() {
   const [fps, setFps] = useState<number>(25);
   const [coords, setCoords] = useState<Coord[]>([]);
 
+  const pitchImage = new Image();
+  pitchImage.src = "/pitch.jpg";
 
   const [correctedMap, setCorrectedMap] = useState<Record<number, Corrected>>(
     {}
@@ -49,14 +53,14 @@ export default function WorkPage() {
     setLoading(true);
     setError(null);
 
-    fetch(`http://localhost:8000/api/video/${videoId}/`)
+    fetch(`${API_URL}/api/video/${videoId}/`)
       .then((res) => {
         if (!res.ok) throw new Error(`GET /api/video/${videoId}/ failed`);
         return res.json() as Promise<ApiVideoData>;
       })
       .then((data) => {
         if (!data.success) throw new Error("API returned success=false");
-        setVideoUrl(`http://localhost:8000${data.video_url}`);
+        setVideoUrl(`${API_URL}${data.video_url}`);
         setFps(data.fps || 25);
         setCoords(data.coordinates || []);
         setLoading(false);
@@ -122,6 +126,9 @@ export default function WorkPage() {
     const canvasHeight = canvas.height;
 
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    if (pitchImage.complete) {
+      ctx.drawImage(pitchImage, 0, 0, canvasWidth, canvasHeight);
+    }
 
     const frame = frameOverride ?? getCurrentFrame();
     const original = findOriginal(frame);
@@ -248,7 +255,7 @@ export default function WorkPage() {
   function saveCoordinates() {
     const finalCoords = buildFinalCoordinatesArray();
 
-    fetch(`http://localhost:8000/api/video/${videoId}/save/`, {
+    fetch(`${API_URL}/api/video/${videoId}/save/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ coordinates: finalCoords }),
@@ -288,6 +295,9 @@ export default function WorkPage() {
 
   const hasCorrection = !!correctedMap[currentFrame];
 
+  pitchImage.onload = () => {
+    drawCoordinatesOnField(currentFrame);
+  };
   return (
     <div className="work-page">
       <div className="work-grid">
@@ -370,6 +380,7 @@ export default function WorkPage() {
    
         <section className="timeline">
           <div className="timeline-inner">
+            {/*TODO: implémenter une timeline avec les trames, possibilité de cliquer pour aller à une trame précise, indication des trames corrigées, etc.*/}
             <strong>TRAMES</strong>
             <span className="timeline-hint"> (à implémenter)</span>
           </div>
