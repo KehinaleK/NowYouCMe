@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import "../styles/WorkPage.css";
 
-const API_URL = "http://localhost:8000";
-
 type Coord = { frame_id: number; x: number; y: number };
 
 type Corrected = {
@@ -17,9 +15,10 @@ type Corrected = {
 type ApiVideoData = {
   success: boolean;
   video_id: number;
-  video_url: string; 
-  fps: number;
+  video_url: string;
   coordinates: Coord[];
+  frame_timestamps: number[];
+  duration?: number;
 };
 
 export default function WorkPage() {
@@ -33,19 +32,29 @@ export default function WorkPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [videoUrl, setVideoUrl] = useState<string>("");
-  const [fps, setFps] = useState<number>(25);
   const [coords, setCoords] = useState<Coord[]>([]);
 
-  const pitchImage = new Image();
-  pitchImage.src = "/pitch.jpg";
 
   const [correctedMap, setCorrectedMap] = useState<Record<number, Corrected>>(
     {}
   );
 
-  
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [timelineStart, setTimelineStart] = useState(0);
 
+  const TIMELINE_VISIBLE = 7;
+  const TIMELINE_STEP_FRAMES = 1;
+  const fieldImgRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = fieldImg;
+
+    img.onload = () => {
+      fieldImgRef.current = img;
+      drawCoordinatesOnField(currentFrame);
+    };
+  }, []);
 
   useEffect(() => {
     if (!Number.isFinite(videoId)) return;
@@ -60,9 +69,10 @@ export default function WorkPage() {
       })
       .then((data) => {
         if (!data.success) throw new Error("API returned success=false");
-        setVideoUrl(`${API_URL}${data.video_url}`);
+        setVideoUrl(`http://localhost:8000${data.video_url}`);
         setFps(data.fps || 25);
         setCoords(data.coordinates || []);
+        setFrameTimestamps(data.frame_timestamps || []);
         setLoading(false);
       })
       .catch((e) => {
@@ -71,12 +81,22 @@ export default function WorkPage() {
       });
   }, [videoId]);
 
-  const frameDuration = useMemo(() => 1 / (fps || 25), [fps]);
+  function getCurrentFrameFromTime(currentTime: number) {
+    if (frameTimestamps.length === 0) return 0;
+
+    for (let i = frameTimestamps.length - 1; i >= 0; i--) {
+      if (currentTime >= frameTimestamps[i]) {
+        return i;
+      }
+    }
+
+    return 0;
+  }
 
   function getCurrentFrame() {
     const v = videoRef.current;
     if (!v) return 0;
-    return Math.round(v.currentTime * (fps || 25));
+    return getCurrentFrameFromTime(v.currentTime);
   }
 
   function syncCurrentFrame() {
@@ -84,10 +104,9 @@ export default function WorkPage() {
   }
 
   function findOriginal(frame: number) {
-    return coords.find((c) => c.frame_id === frame);
+    return coords[frame];
   }
 
- 
   function canvasToVideoCoords(canvasX: number, canvasY: number) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -126,9 +145,6 @@ export default function WorkPage() {
     const canvasHeight = canvas.height;
 
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    if (pitchImage.complete) {
-      ctx.drawImage(pitchImage, 0, 0, canvasWidth, canvasHeight);
-    }
 
     const frame = frameOverride ?? getCurrentFrame();
     const original = findOriginal(frame);
@@ -146,23 +162,44 @@ export default function WorkPage() {
     }
   }
 
-  
   useEffect(() => {
     drawCoordinatesOnField(currentFrame);
-
-  }, [coords, correctedMap, fps, currentFrame]);
+  }, [coords, correctedMap, currentFrame, frameTimestamps]);
 
   function onLoadedMetadata() {
     const v = videoRef.current;
     if (!v) return;
+
     v.currentTime = 0;
 
     requestAnimationFrame(() => {
       syncCurrentFrame();
-      drawCoordinatesOnField();
+      drawCoordinatesOnField(0);
     });
   }
 
+  function goToFrame(frame: number) {
+    const v = videoRef.current;
+    if (!v) return;
+    if (frame < 0 || frame >= frameTimestamps.length) return;
+
+    v.currentTime = frameTimestamps[frame];
+    setCurrentFrame(frame);
+
+    requestAnimationFrame(() => {
+      drawCoordinatesOnField(frame);
+    });
+  }
+
+  function getTotalNumOfFrames() {
+    return coords.length;
+  }
+
+  useEffect(() => {
+    const half = Math.floor(TIMELINE_VISIBLE / 2);
+    const desiredStart = Math.max(0, currentFrame - half * TIMELINE_STEP_FRAMES);
+    setTimelineStart(desiredStart);
+  }, [currentFrame]);
 
   function pauseVideo() {
     const v = videoRef.current;
@@ -175,26 +212,21 @@ export default function WorkPage() {
   function nextFrame() {
     const v = videoRef.current;
     if (!v) return;
-    v.pause();
-    v.currentTime += frameDuration;
 
-    requestAnimationFrame(() => {
-      syncCurrentFrame();
-      drawCoordinatesOnField();
-    });
+    v.pause();
+
+    const next = Math.min(currentFrame + 1, frameTimestamps.length - 1);
+    goToFrame(next);
   }
 
   function prevFrame() {
     const v = videoRef.current;
     if (!v) return;
-    v.pause();
-    v.currentTime -= frameDuration;
-    if (v.currentTime < 0) v.currentTime = 0;
 
-    requestAnimationFrame(() => {
-      syncCurrentFrame();
-      drawCoordinatesOnField();
-    });
+    v.pause();
+
+    const prev = Math.max(currentFrame - 1, 0);
+    goToFrame(prev);
   }
 
   function resetCorrection() {
@@ -239,8 +271,8 @@ export default function WorkPage() {
   }
 
   function buildFinalCoordinatesArray() {
-    return coords.map((coord) => {
-      const corrected = correctedMap[coord.frame_id];
+    return coords.map((coord, index) => {
+      const corrected = correctedMap[index];
       if (corrected) {
         return {
           frame_id: coord.frame_id,
@@ -268,7 +300,6 @@ export default function WorkPage() {
       .catch((e) => alert(String(e)));
   }
 
-
   const coordsText = useMemo(() => {
     const original = findOriginal(currentFrame);
     const corrected = correctedMap[currentFrame];
@@ -281,10 +312,15 @@ export default function WorkPage() {
     if (corrected) {
       text += `\nCoords corrigées x: ${corrected.new_x}, y: ${corrected.new_y}`;
     }
-    return text;
-  }, [currentFrame, coords, correctedMap]);
 
-  
+    const ts = frameTimestamps[currentFrame];
+    if (ts !== undefined) {
+      text += `\nTimestamp début: ${ts.toFixed(3)} s`;
+    }
+
+    return text;
+  }, [currentFrame, coords, correctedMap, frameTimestamps]);
+
   function onTimeUpdate() {
     syncCurrentFrame();
     drawCoordinatesOnField();
@@ -301,7 +337,6 @@ export default function WorkPage() {
   return (
     <div className="work-page">
       <div className="work-grid">
-   
         <section className="left-col">
           <div className="nav-bar">
             <div className="nav-title">NAVIGATION</div>
@@ -326,7 +361,6 @@ export default function WorkPage() {
           </div>
         </section>
 
-     
         <aside className="right-col">
           <div className="video-card">
             <div className="video-top">
@@ -354,7 +388,9 @@ export default function WorkPage() {
               <button onClick={nextFrame}>➡</button>
             </div>
 
-            <div className="fps-info">FPS: {fps}</div>
+            <div className="fps-info">
+              Custom frames: {coords.length}
+            </div>
           </div>
 
           <div className="side-panel">
@@ -377,12 +413,49 @@ export default function WorkPage() {
           </div>
         </aside>
 
-   
         <section className="timeline">
-          <div className="timeline-inner">
+          <div className="timeline-bar">
             {/*TODO: implémenter une timeline avec les trames, possibilité de cliquer pour aller à une trame précise, indication des trames corrigées, etc.*/}
-            <strong>TRAMES</strong>
-            <span className="timeline-hint"> (à implémenter)</span>
+            <button
+              className="timeline-nav"
+              onClick={() =>
+                setTimelineStart((s) => Math.max(0, s - TIMELINE_VISIBLE))
+              }
+            >
+              ◀
+            </button>
+
+            <div className="timeline-strip">
+              {Array.from({ length: TIMELINE_VISIBLE }).map((_, i) => {
+                const frame = timelineStart + i;
+                const active = frame === currentFrame;
+                const timestamp = frameTimestamps[frame];
+
+                if (frame >= coords.length) return null;
+
+                return (
+                  <button
+                    key={frame}
+                    className={`timeline-cell ${active ? "active" : ""}`}
+                    onClick={() => goToFrame(frame)}
+                    title={`Frame ${frame}${timestamp !== undefined ? ` - ${timestamp.toFixed(3)}s` : ""}`}
+                  >
+                    <div className="cell-frame">Frame {frame}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              className="timeline-nav"
+              onClick={() =>
+                setTimelineStart((s) =>
+                  Math.min(Math.max(0, getTotalNumOfFrames() - TIMELINE_VISIBLE), s + TIMELINE_VISIBLE)
+                )
+              }
+            >
+              ▶
+            </button>
           </div>
         </section>
       </div>
