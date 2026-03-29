@@ -24,3 +24,4 @@ frontend/dist-ssr/
 .vscode/*
 !.vscode/extensions.json
 .idea/*.mp4
+*.mp4
