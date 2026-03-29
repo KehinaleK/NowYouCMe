@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/HomePage.css";
 
+const API_URL = "http://localhost:8000";
+
 export default function HomePageUpload() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [coordsFile, setCoordsFile] = useState<File | null>(null);
@@ -85,11 +87,11 @@ export default function HomePageUpload() {
 
     setLoading(true);
 
-    fetch("http://localhost:8000/api/upload/", {
-      method: "POST",
-      body: formData,
-    })
-      .then((r) => r.json())
+    fetch(`${API_URL}/api/upload/`, {
+        method: "POST",
+        body: formData,
+      })
+        .then((r) => r.json())
       .then((data) => {
         setLoading(false);
         if (data.success) navigate(`/work/${data.video_id}`);

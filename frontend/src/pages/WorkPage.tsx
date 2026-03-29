@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import "../styles/WorkPage.css";
+import fieldImg from "../../assets/background_soccer.jpg";
+
+const API_URL = "http://localhost:8000";
 
 type Coord = { frame_id: number; x: number; y: number };
 
@@ -18,6 +21,7 @@ type ApiVideoData = {
   video_url: string;
   coordinates: Coord[];
   frame_timestamps: number[];
+  frame_preview_urls?: string[];
   duration?: number;
 };
 
@@ -27,29 +31,28 @@ export default function WorkPage() {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fieldImgRef = useRef<HTMLImageElement | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [coords, setCoords] = useState<Coord[]>([]);
-
+  const [frameTimestamps, setFrameTimestamps] = useState<number[]>([]);
 
   const [correctedMap, setCorrectedMap] = useState<Record<number, Corrected>>(
     {}
   );
 
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [timelineStart, setTimelineStart] = useState(0);
+  // const [timelineStart, setTimelineStart] = useState(0); // pour ma barre horizontale mais peut être enlevée
 
-  const TIMELINE_VISIBLE = 7;
-  const TIMELINE_STEP_FRAMES = 1;
-  const fieldImgRef = useRef<HTMLImageElement | null>(null);
+  // const TIMELINE_VISIBLE = 7;
+  // const TIMELINE_STEP_FRAMES = 1;
 
   useEffect(() => {
     const img = new Image();
     img.src = fieldImg;
-
     img.onload = () => {
       fieldImgRef.current = img;
       drawCoordinatesOnField(currentFrame);
@@ -57,22 +60,42 @@ export default function WorkPage() {
   }, []);
 
   useEffect(() => {
-    if (!Number.isFinite(videoId)) return;
+    if (!Number.isFinite(videoId)) {
+      setError("Invalid video id");
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     fetch(`${API_URL}/api/video/${videoId}/`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`GET /api/video/${videoId}/ failed`);
-        return res.json() as Promise<ApiVideoData>;
+      .then(async (res) => {
+        const text = await res.text();
+
+        let data: ApiVideoData;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Invalid JSON returned by server: ${text}`);
+        }
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        return data;
       })
       .then((data) => {
-        if (!data.success) throw new Error("API returned success=false");
-        setVideoUrl(`http://localhost:8000${data.video_url}`);
-        setFps(data.fps || 25);
+        if (!data.success) {
+          throw new Error("API returned success=false");
+        }
+
+        setVideoUrl(`${API_URL}${data.video_url}`);
         setCoords(data.coordinates || []);
         setFrameTimestamps(data.frame_timestamps || []);
+        setCurrentFrame(0);
+        // setTimelineStart(0);
         setLoading(false);
       })
       .catch((e) => {
@@ -104,12 +127,13 @@ export default function WorkPage() {
   }
 
   function findOriginal(frame: number) {
-    return coords[frame];
+    return coords[frame] ?? null;
   }
 
   function canvasToVideoCoords(canvasX: number, canvasY: number) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
+
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
@@ -138,6 +162,7 @@ export default function WorkPage() {
   function drawCoordinatesOnField(frameOverride?: number) {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -145,6 +170,11 @@ export default function WorkPage() {
     const canvasHeight = canvas.height;
 
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    const bg = fieldImgRef.current;
+    if (bg) {
+      ctx.drawImage(bg, 0, 0, canvasWidth, canvasHeight);
+    }
 
     const frame = frameOverride ?? getCurrentFrame();
     const original = findOriginal(frame);
@@ -173,7 +203,7 @@ export default function WorkPage() {
     v.currentTime = 0;
 
     requestAnimationFrame(() => {
-      syncCurrentFrame();
+      setCurrentFrame(0);
       drawCoordinatesOnField(0);
     });
   }
@@ -183,6 +213,7 @@ export default function WorkPage() {
     if (!v) return;
     if (frame < 0 || frame >= frameTimestamps.length) return;
 
+    v.pause();
     v.currentTime = frameTimestamps[frame];
     setCurrentFrame(frame);
 
@@ -191,19 +222,20 @@ export default function WorkPage() {
     });
   }
 
-  function getTotalNumOfFrames() {
-    return coords.length;
-  }
 
-  useEffect(() => {
-    const half = Math.floor(TIMELINE_VISIBLE / 2);
-    const desiredStart = Math.max(0, currentFrame - half * TIMELINE_STEP_FRAMES);
-    setTimelineStart(desiredStart);
-  }, [currentFrame]);
+  // useEffect(() => { // pour a barre horizontale, same, peut être supp
+  //   const half = Math.floor(TIMELINE_VISIBLE / 2);
+  //   const desiredStart = Math.max(
+  //     0,
+  //     currentFrame - half * TIMELINE_STEP_FRAMES
+  //   );
+  //   setTimelineStart(desiredStart);
+  // }, [currentFrame]);
 
   function pauseVideo() {
     const v = videoRef.current;
     if (!v) return;
+
     v.pause();
     syncCurrentFrame();
     drawCoordinatesOnField();
@@ -273,6 +305,7 @@ export default function WorkPage() {
   function buildFinalCoordinatesArray() {
     return coords.map((coord, index) => {
       const corrected = correctedMap[index];
+
       if (corrected) {
         return {
           frame_id: coord.frame_id,
@@ -280,7 +313,12 @@ export default function WorkPage() {
           y: corrected.new_y,
         };
       }
-      return { frame_id: coord.frame_id, x: coord.x, y: coord.y };
+
+      return {
+        frame_id: coord.frame_id,
+        x: coord.x,
+        y: coord.y,
+      };
     });
   }
 
@@ -294,8 +332,11 @@ export default function WorkPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.success) alert(`Saved:\n${data.file}`);
-        else alert(`Save error: ${data.error}`);
+        if (data.success) {
+          alert(`Saved:\n${data.file}`);
+        } else {
+          alert(`Save error: ${data.error}`);
+        }
       })
       .catch((e) => alert(String(e)));
   }
@@ -319,7 +360,7 @@ export default function WorkPage() {
     }
 
     return text;
-  }, [currentFrame, coords, correctedMap, frameTimestamps]);
+  }, [currentFrame, correctedMap, coords, frameTimestamps]);
 
   function onTimeUpdate() {
     syncCurrentFrame();
@@ -331,9 +372,6 @@ export default function WorkPage() {
 
   const hasCorrection = !!correctedMap[currentFrame];
 
-  pitchImage.onload = () => {
-    drawCoordinatesOnField(currentFrame);
-  };
   return (
     <div className="work-page">
       <div className="work-grid">
@@ -388,9 +426,7 @@ export default function WorkPage() {
               <button onClick={nextFrame}>➡</button>
             </div>
 
-            <div className="fps-info">
-              Custom frames: {coords.length}
-            </div>
+            <div className="fps-info">Custom frames: {coords.length}</div>
           </div>
 
           <div className="side-panel">
@@ -413,9 +449,8 @@ export default function WorkPage() {
           </div>
         </aside>
 
-        <section className="timeline">
+        {/* <section className="timeline"> MA VERSION DE LA BARRE HORIZONTALE, peut être enlevée
           <div className="timeline-bar">
-            {/*TODO: implémenter une timeline avec les trames, possibilité de cliquer pour aller à une trame précise, indication des trames corrigées, etc.*/}
             <button
               className="timeline-nav"
               onClick={() =>
@@ -444,20 +479,23 @@ export default function WorkPage() {
                   </button>
                 );
               })}
-            </div>
+            </div> */}
 
-            <button
+            {/* <button
               className="timeline-nav"
               onClick={() =>
                 setTimelineStart((s) =>
-                  Math.min(Math.max(0, getTotalNumOfFrames() - TIMELINE_VISIBLE), s + TIMELINE_VISIBLE)
+                  Math.min(
+                    Math.max(0, getTotalNumOfFrames() - TIMELINE_VISIBLE),
+                    s + TIMELINE_VISIBLE
+                  )
                 )
               }
             >
               ▶
             </button>
           </div>
-        </section>
+        </section> */}
       </div>
     </div>
   );
