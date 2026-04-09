@@ -15,13 +15,13 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   {
     target: ".upload-block:last-child",
     title: "Fichier de coordonnées",
-    description: "Sélectionnez le fichier texte (.txt) contenant les positions du ballon pour chaque trame.",
+    description: "Optionnel. Sélectionnez le fichier texte (.txt) contenant les positions du ballon pour chaque trame.",
     position: "bottom",
   },
   {
     target: ".main-btn",
     title: "Lancer l'analyse",
-    description: "Une fois les deux fichiers sélectionnés, cliquez ici pour envoyer et commencer à travailler.",
+    description: "Une fois la vidéo sélectionnée, cliquez ici pour envoyer et commencer à travailler.",
     position: "top",
   },
 ];
@@ -95,11 +95,11 @@ export default function HomePageUpload() {
   }
 
   function upload() {
-    if (!videoFile || !coordsFile) return;
+    if (!videoFile) return;
 
     const formData = new FormData();
     formData.append("video", videoFile);
-    formData.append("coordinates", coordsFile);
+    if (coordsFile) formData.append("coordinates", coordsFile);
 
     setLoading(true);
 
@@ -163,7 +163,7 @@ export default function HomePageUpload() {
         <button
           className="main-btn"
           onClick={upload}
-          disabled={loading || !videoFile || !coordsFile}
+          disabled={loading || !videoFile}
         >
           {loading ? "Uploading..." : "Upload Files"}
         </button>

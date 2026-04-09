@@ -28,9 +28,9 @@ def upload_video(request):
     video_file = request.FILES.get("video")
     txt_file = request.FILES.get("coordinates")
 
-    if not video_file or not txt_file:
+    if not video_file:
         return JsonResponse(
-            {"success": False, "error": "Missing video or coordinates file."},
+            {"success": False, "error": "Missing video file."},
             status=400,
         )
 
@@ -46,13 +46,25 @@ def upload_video(request):
     duration = frame_count / fps if fps > 0 else 0
     cap.release()
 
-    coords = parse_coordinates(txt_file)
-    num_frames_data = len(coords)
-    frames_timestamps = get_frames_timestamps(duration, num_frames_data)
+    step = 10
+    num_samples = frame_count // step if frame_count >= step else max(frame_count, 1)
+    frames_timestamps = [(i * step / fps) for i in range(num_samples)] if fps > 0 else []
+
+    if txt_file:
+        txt_coords = parse_coordinates(txt_file)
+    else:
+        txt_coords = []
+
+    coords = []
+    for i in range(len(frames_timestamps)):
+        if i < len(txt_coords):
+            coords.append({"frame_id": i, "x": txt_coords[i]["x"], "y": txt_coords[i]["y"]})
+        else:
+            coords.append({"frame_id": i, "x": 0, "y": 0})
 
     video.fps = fps
     video.duration = duration
-    video.numFrames = num_frames_data
+    video.numFrames = len(coords)
     video.frames_timestamps = frames_timestamps
     video.save()
 
