@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #f4f4f4;
   color: #1e1e1e;
-  padding: 24px;
+  padding: 12px;
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -10,11 +10,11 @@
 .work-grid {
   display: grid;
 
-  grid-template-columns: auto 420px;
-  grid-template-rows: auto 120px;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: auto auto;
 
-  gap: 20px;
-  max-width: 1500px; 
+  gap: 12px;
+  max-width: 1500px;
   margin: 0 auto;
 }
 
@@ -27,7 +27,7 @@
 .left-col {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 
@@ -57,12 +57,12 @@
 .canvas-card {
   background: white;
   border-radius: 10px;
-  padding: 20px;
+  padding: 10px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.08);
 
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
 }
 
 .canvas-header h2 {
@@ -81,18 +81,19 @@
   justify-content: center;
   align-items: center;
 
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fafafa;
   border: 1px solid #eee;
-  padding: 12px;
+  padding: 4px;
 
-  overflow: visible;
+  overflow: hidden;
 }
 
 
 .field-canvas {
   width: 1050px;
   height: 680px;
+  max-width: 100%;
 
   display: block;
 
@@ -104,35 +105,53 @@
 .right-col {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  width: 420px;
+  gap: 12px;
+  width: 380px;
 }
 
 
 .video-card {
   background: white;
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.08);
 
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .video-top {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
 }
 
 .video-top h2 {
-  font-size: 16px;
+  font-size: 15px;
+}
+
+.video-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.work-grid .help-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: #eee;
+  color: #333;
+  border-radius: 6px;
+}
+
+.work-grid .help-btn:hover {
+  background: #ddd;
 }
 
 .back-link {
-  font-size: 12px;
+  font-size: 11px;
   text-decoration: none;
   color: #555;
 }
@@ -180,27 +199,33 @@
 .side-panel {
   background: white;
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-.save-btn {
-  width: 100%;
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.save-btn,
+.download-btn {
+  flex: 1;
 }
 
 .coords-box {
   background: #fafafa;
   border: 1px solid #eee;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 8px;
 
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .coords-title {
@@ -229,19 +254,67 @@
   background: white;
   border-radius: 10px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-  padding: 18px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.timeline-strip {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-x: auto;
+  scroll-behavior: smooth;
 }
 
-.timeline-inner {
-  font-size: 18px;
-  letter-spacing: 1px;
+.timeline-strip::-webkit-scrollbar {
+  height: 5px;
 }
 
-.timeline-hint {
-  font-size: 12px;
-  color: #666;
-  margin-left: 6px;
+.timeline-strip::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.work-grid .timeline-thumb {
+  flex: 0 0 auto;
+  position: relative;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: #999;
+  cursor: pointer;
+}
+
+.work-grid .timeline-thumb:hover {
+  background: none;
+}
+
+.work-grid .timeline-thumb.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid #fff;
+  box-shadow: inset 0 0 0 1px #222;
+  pointer-events: none;
+}
+
+.timeline-thumb img {
+  display: block;
+  width: 100px;
+  height: 56px;
+  object-fit: cover;
+  background: #ddd;
+}
+
+.timeline-thumb span {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  padding: 1px 4px;
+  border-radius: 2px;
+  pointer-events: none;
 }
