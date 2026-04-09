@@ -7,7 +7,7 @@ import { useFrameNavigation } from "../hooks/useFrameNavigation";
 import { useCoordinateCorrection } from "../hooks/useCoordinateCorrection";
 import { useFieldCanvas } from "../hooks/useFieldCanvas";
 import TutorialOverlay from "../components/TutorialOverlay";
-import type { TutorialStep, TutorialHandle } from "../components/TutorialOverlay";
+import type { TutorialStep } from "../components/TutorialOverlay";
 
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
@@ -58,8 +58,6 @@ export default function WorkPage() {
   const { id } = useParams();
   const videoId = id ? Number(id) : NaN;
   const videoRef = useRef<HTMLVideoElement>(null);
-  const tutorialRef = useRef<TutorialHandle>(null);
-
   const { loading, error, videoUrl, coords: initialCoords, frameTimestamps } =
     useVideoData(videoId);
 
@@ -111,6 +109,7 @@ export default function WorkPage() {
 
   return (
     <div className="work-page">
+      <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-work" />
       <div className="work-grid">
         <section className="left-col">
           <div className="canvas-card">
@@ -130,14 +129,9 @@ export default function WorkPage() {
           <div className="video-card">
             <div className="video-top">
               <h2>Vidéo</h2>
-              <div className="video-top-actions">
-                <button className="help-btn" onClick={() => tutorialRef.current?.start()}>
-                  Aide
-                </button>
-                <Link className="back-link" to="/">
-                  ⬅ Retour
-                </Link>
-              </div>
+              <Link className="back-link" to="/">
+                ⬅ Retour
+              </Link>
             </div>
 
             <video
