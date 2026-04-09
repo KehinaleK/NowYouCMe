@@ -61,7 +61,7 @@ function getTooltipStyle(rect: DOMRect, position: string) {
 const TutorialOverlay = forwardRef<TutorialHandle, Props>(
   ({ steps, storageKey, showTrigger = true }, ref) => {
     const [active, setActive] = useState(
-      () => !localStorage.getItem(storageKey)
+      () => !sessionStorage.getItem(storageKey)
     );
     const [step, setStep] = useState(0);
     const [rect, setRect] = useState<DOMRect | null>(null);
@@ -98,7 +98,7 @@ const TutorialOverlay = forwardRef<TutorialHandle, Props>(
 
     function finish() {
       setActive(false);
-      localStorage.setItem(storageKey, "done");
+      sessionStorage.setItem(storageKey, "done");
     }
 
     function next() {

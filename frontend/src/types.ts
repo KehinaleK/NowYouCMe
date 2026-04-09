@@ -18,6 +18,4 @@ export type ApiVideoData = {
   video_url: string;
   coordinates: Coord[];
   frame_timestamps: number[];
-  frame_preview_urls?: string[];
-  duration?: number;
 };

@@ -123,7 +123,7 @@ export default function HomePageUpload() {
     <div>
       <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-home" />
       <header>
-        <h1>Choisissez une vidéo et les coordonnées correspondantes</h1>
+        <h1>Choisissez une vidéo à analyser</h1>
         <div className="divider" />
       </header>
 
