@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/HomePage.css";
+import HelpPage from "./HelpPage"; 
 
 export default function HomePageUpload() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [coordsFile, setCoordsFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const navigate = useNavigate();
 
   const ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".mkv", ".avi", ".mov"];
@@ -103,9 +105,33 @@ export default function HomePageUpload() {
 
   return (
     <div>
+      {/*Ajout HELP overlay */}
+      {showHelp && (
+      <HelpPage onClose={() => setShowHelp(false)} />
+      )}
       <header>
         <h1>Choisissez une vidéo et les coordonnées correspondantes</h1>
         <div className="divider" />
+
+        {/*Bouton Help*/}
+        <button
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            padding: "10px 16px",
+            borderRadius: "20px", 
+            border: "none",
+            background: "#111",
+            color: "white",
+            fontWeight: "500",
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          }}
+          onClick={() => setShowHelp(true)}
+        >
+          Need help ?
+        </button>
       </header>
 
       <div className="upload-wrapper">
