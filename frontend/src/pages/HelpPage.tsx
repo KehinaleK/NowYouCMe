@@ -1,5 +1,3 @@
-// HelpPage.tsx
-
 import { useState } from "react";
 
 type HelpPageProps = {
@@ -9,7 +7,6 @@ type HelpPageProps = {
 };
 
 const ALL_STEPS = [
-  // Home page — steps 1-3
   {
     title: "Fichier vidéo",
     text: "Sélectionnez une vidéo pour commencer.",
@@ -25,7 +22,6 @@ const ALL_STEPS = [
     text: "Cliquez sur le bouton Upload pour lancer la démonstration.",
     image: "/images/step3.png",
   },
-  // Work page — steps 4-9
   {
     title: "Interface de visualisation",
     text: "Vous accédez à l'interface de visualisation avec le terrain et la vidéo.",

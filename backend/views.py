@@ -1,5 +1,3 @@
-# backend/views.py
-
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -12,8 +10,6 @@ import json
 import cv2
 import os
 
-
-# UPLOAD VIDEO + COORDINATES
 
 def get_frames_timestamps(duration, num_frames):
     if num_frames <= 0:
@@ -46,14 +42,13 @@ def upload_video(request):
     duration = frame_count / fps if fps > 0 else 0
     cap.release()
 
-    interval = 0.5  # seconds between samples
+    interval = 0.5
     natural_count = int(duration / interval)
     natural_timestamps = [i * interval for i in range(natural_count)]
 
     raw_coords = parse_coordinates(txt_file) if txt_file else []
 
     if len(raw_coords) > natural_count:
-        # txt has more data than our sampling would produce — clean it and use its count
         cleaned = clean_coordinates(raw_coords)
         num_samples = len(cleaned)
         frames_timestamps = (
@@ -65,7 +60,6 @@ def upload_video(request):
             for i, c in enumerate(cleaned)
         ]
     else:
-        # txt is smaller than our sampling (or absent) — use natural count, fill blanks
         frames_timestamps = natural_timestamps
         coords = []
         for i in range(natural_count):
@@ -96,8 +90,6 @@ def upload_video(request):
     })
 
 
-# GET VIDEO DATA 
-
 @require_GET
 def get_video_data(request, video_id: int):
     video = get_object_or_404(Video, id=video_id)
@@ -125,8 +117,6 @@ def get_video_data(request, video_id: int):
         "duration": video.duration,
     })
 
-
-# GET ONE FRAME IMAGE FOR A CUSTOM FRAME INDEX
 
 @require_GET
 def get_video_frame(request, video_id: int, frame_index: int):
@@ -163,8 +153,6 @@ def get_video_frame(request, video_id: int, frame_index: int):
 
     return HttpResponse(buffer.tobytes(), content_type="image/jpeg")
 
-
-# SAVE CORRECTED COORDINATES
 
 @csrf_exempt
 @require_POST
