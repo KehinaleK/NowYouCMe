@@ -3,90 +3,45 @@ import numpy as np
 
 
 def parse_coordinates(file):
-
-    allCoordinates = []
-    frame_id = 0
-
+    coords = []
     for line in file:
         line = line.decode('utf-8').strip()
         if not line:
             continue
-
         line = line.strip('[').strip(']').replace("'", "")
-        line = line.split(",")
-        if len(line) == 4:
-            x = float(line[1].strip())
-            y = float(line[2].strip())
-
-            allCoordinates.append({'frame_id' : frame_id, 'x' : x, 'y' : y})
-            frame_id += 1
-
-    allCoordinates = sorted(allCoordinates, key=lambda x: x['frame_id'])
-
-    return allCoordinates
-
-
-ANALYSIS_RESOLUTION = (160, 90)
-
-
-def compute_dynamic_timestamps(
-    video_path,
-    duration,
-    analysis_step=0.5,
-    fine_interval=0.5,
-    coarse_interval=2.0,
-):
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        return []
-
-    #collect motion scores at every analysis_step
-    scores = []
-    prev_gray = None
-    t = 0.0
-
-    while t < duration:
-        cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
-        ok, frame = cap.read()
-        if not ok or frame is None:
-            t += analysis_step
+        parts = line.split(",")
+        if len(parts) < 3:
             continue
+        try:
+            frame_id = int(float(parts[0].strip()))
+            x = float(parts[1].strip())
+            y = float(parts[2].strip())
+            is_goal = bool(int(float(parts[3].strip()))) if len(parts) >= 4 else False
+            coords.append({'frame_id': frame_id, 'x': x, 'y': y, 'is_goal': is_goal})
+        except (ValueError, IndexError):
+            continue
+    return coords
 
-        small = cv2.resize(frame, ANALYSIS_RESOLUTION)
-        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
 
-        if prev_gray is not None:
-            diff = cv2.absdiff(gray, prev_gray)
-            score = float(np.mean(diff))
-        else:
-            score = 0.0
+def clean_coordinates(coords):
+    """Remove duplicate frame_ids (keep first) and fill missing frames with zeros."""
+    seen = {}
+    for c in coords:
+        fid = c['frame_id']
+        if fid not in seen:
+            seen[fid] = c
 
-        scores.append((t, score))
-        prev_gray = gray
-        t += analysis_step
-
-    cap.release()
-
-    if not scores:
+    if not seen:
         return []
 
-    #compute threshold
-    all_scores = [s for _, s in scores]
-    threshold = float(np.mean(all_scores))
+    min_frame = min(seen.keys())
+    max_frame = max(seen.keys())
 
-    #select timestamps
-    timestamps = [0.0]
-    last_added = 0.0
-
-    for t, score in scores[1:]:
-        if score >= threshold:
-            if t - last_added >= fine_interval - 0.001:
-                timestamps.append(t)
-                last_added = t
+    cleaned = []
+    for fid in range(min_frame, max_frame + 1):
+        if fid in seen:
+            cleaned.append(seen[fid])
         else:
-            if t - last_added >= coarse_interval - 0.001:
-                timestamps.append(t)
-                last_added = t
+            cleaned.append({'frame_id': fid, 'x': 0.0, 'y': 0.0, 'is_goal': False})
 
-    return timestamps
-
+    return cleaned

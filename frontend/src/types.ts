@@ -2,6 +2,7 @@ export type Coord = {
   frame_id: number;
   x: number;
   y: number;
+  is_goal: boolean;
 };
 
 export type Corrected = {

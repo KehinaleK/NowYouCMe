@@ -6,12 +6,6 @@ import type { TutorialStep } from "../components/TutorialOverlay";
 import "../styles/HomePage.css";
 import HelpPage from "./HelpPage";
 
-export default function HomePageUpload() {
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [coordsFile, setCoordsFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const navigate = useNavigate();
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     target: ".upload-block:first-child",
@@ -63,6 +57,7 @@ export default function HomePageUpload() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [coordsFile, setCoordsFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const navigate = useNavigate();
 
   function handleVideoChange(e: ChangeEvent<HTMLInputElement>) {

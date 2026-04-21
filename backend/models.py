@@ -18,6 +18,7 @@ class Coordinates(models.Model):
     frame_id = models.IntegerField()
     x = models.FloatField()
     y = models.FloatField()
+    is_goal = models.BooleanField(default=False)
 
     def __str__(self):
         return f'frame {self.frame_id} : {self.x} and {self.y}'

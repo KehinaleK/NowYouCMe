@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Video, Coordinates
-from .utils import parse_coordinates
+from .utils import parse_coordinates, clean_coordinates
 
 import json
 import cv2
@@ -46,21 +46,34 @@ def upload_video(request):
     duration = frame_count / fps if fps > 0 else 0
     cap.release()
 
-    step = 10
-    num_samples = frame_count // step if frame_count >= step else max(frame_count, 1)
-    frames_timestamps = [(i * step / fps) for i in range(num_samples)] if fps > 0 else []
+    interval = 0.5  # seconds between samples
+    natural_count = int(duration / interval)
+    natural_timestamps = [i * interval for i in range(natural_count)]
 
-    if txt_file:
-        txt_coords = parse_coordinates(txt_file)
+    raw_coords = parse_coordinates(txt_file) if txt_file else []
+
+    if len(raw_coords) > natural_count:
+        # txt has more data than our sampling would produce — clean it and use its count
+        cleaned = clean_coordinates(raw_coords)
+        num_samples = len(cleaned)
+        frames_timestamps = (
+            [i * duration / num_samples for i in range(num_samples)]
+            if num_samples > 0 else []
+        )
+        coords = [
+            {"frame_id": i, "x": c["x"], "y": c["y"], "is_goal": c["is_goal"]}
+            for i, c in enumerate(cleaned)
+        ]
     else:
-        txt_coords = []
-
-    coords = []
-    for i in range(len(frames_timestamps)):
-        if i < len(txt_coords):
-            coords.append({"frame_id": i, "x": txt_coords[i]["x"], "y": txt_coords[i]["y"]})
-        else:
-            coords.append({"frame_id": i, "x": 0, "y": 0})
+        # txt is smaller than our sampling (or absent) — use natural count, fill blanks
+        frames_timestamps = natural_timestamps
+        coords = []
+        for i in range(natural_count):
+            if i < len(raw_coords):
+                c = raw_coords[i]
+                coords.append({"frame_id": i, "x": c["x"], "y": c["y"], "is_goal": c["is_goal"]})
+            else:
+                coords.append({"frame_id": i, "x": 0.0, "y": 0.0, "is_goal": False})
 
     video.fps = fps
     video.duration = duration
@@ -74,6 +87,7 @@ def upload_video(request):
             frame_id=c["frame_id"],
             x=c["x"],
             y=c["y"],
+            is_goal=c["is_goal"],
         )
 
     return JsonResponse({
@@ -90,7 +104,7 @@ def get_video_data(request, video_id: int):
 
     coords_qs = Coordinates.objects.filter(video=video).order_by("frame_id")
     coords = [
-        {"frame_id": c.frame_id, "x": c.x, "y": c.y}
+        {"frame_id": c.frame_id, "x": c.x, "y": c.y, "is_goal": c.is_goal}
         for c in coords_qs
     ]
 
