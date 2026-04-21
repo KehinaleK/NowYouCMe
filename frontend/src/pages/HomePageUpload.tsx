@@ -131,7 +131,6 @@ export default function HomePageUpload() {
         <h1>Choisissez une vidéo à analyser</h1>
         <div className="divider" />
 
-        {/*Bouton Help*/}
         <button
           style={{
             position: "absolute",
