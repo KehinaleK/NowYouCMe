@@ -123,10 +123,9 @@ export default function HomePageUpload() {
 
   return (
     <div>
-      <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-home" />
-      {/*Ajout HELP overlay */}
+      <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-home" showTrigger={false} />
       {showHelp && (
-      <HelpPage onClose={() => setShowHelp(false)} />
+        <HelpPage onClose={() => setShowHelp(false)} initialStep={0} lastStep={2} />
       )}
       <header>
         <h1>Choisissez une vidéo à analyser</h1>

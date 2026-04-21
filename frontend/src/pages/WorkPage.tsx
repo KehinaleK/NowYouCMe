@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, MouseEvent } from "react";
 import { useParams, Link } from "react-router-dom";
 import "../styles/WorkPage.css";
 import { API_URL } from "../config";
@@ -8,6 +8,7 @@ import { useCoordinateCorrection } from "../hooks/useCoordinateCorrection";
 import { useFieldCanvas } from "../hooks/useFieldCanvas";
 import TutorialOverlay from "../components/TutorialOverlay";
 import type { TutorialStep } from "../components/TutorialOverlay";
+import HelpPage from "./HelpPage";
 
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
@@ -41,6 +42,12 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     position: "left",
   },
   {
+    target: ".goal-box",
+    title: "Marquer un but",
+    description: "Cochez cette case si la position de la trame correspond à un but. L'information est incluse à l'export.",
+    position: "left",
+  },
+  {
     target: ".action-buttons",
     title: "Sauvegarder et télécharger",
     description: "Sauvegardez votre travail sur le serveur, ou téléchargez les coordonnées corrigées en fichier texte.",
@@ -52,12 +59,20 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: "Parcourez toutes les trames visuellement. La barre suit la lecture vidéo automatiquement. Cliquez sur une vignette pour y accéder.",
     position: "top",
   },
+  {
+    target: ".need-help-btn",
+    title: "Besoin d'aide ?",
+    description: "Ce bouton ouvre le guide complet à tout moment. Vous y retrouverez toutes les étapes de l'application.",
+    position: "left",
+  },
 ];
 
 export default function WorkPage() {
   const { id } = useParams();
   const videoId = id ? Number(id) : NaN;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
   const { loading, error, videoUrl, coords: initialCoords, frameTimestamps } =
     useVideoData(videoId);
 
@@ -75,8 +90,16 @@ export default function WorkPage() {
     }
   }, [currentFrame]);
 
-  const { coords, correctedMap, applyCorrection, resetCorrection, saveCoordinates, downloadCoordinates } =
-    useCoordinateCorrection(initialCoords, videoId);
+  const {
+    coords,
+    correctedMap,
+    applyCorrection,
+    resetCorrection,
+    getIsGoal,
+    toggleGoal,
+    saveCoordinates,
+    downloadCoordinates,
+  } = useCoordinateCorrection(initialCoords, videoId);
 
   const { canvasRef, getClickCoords } =
     useFieldCanvas(coords, correctedMap, currentFrame);
@@ -109,7 +132,10 @@ export default function WorkPage() {
 
   return (
     <div className="work-page">
-      <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-work" />
+      <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-work" showTrigger={false} />
+      {showHelp && (
+        <HelpPage onClose={() => setShowHelp(false)} initialStep={3} />
+      )}
       <div className="work-grid">
         <section className="left-col">
           <div className="canvas-card">
@@ -163,6 +189,7 @@ export default function WorkPage() {
                 Télécharger
               </button>
             </div>
+
             <div className="coords-box">
               <div className="coords-title">Coordonnées</div>
               <pre className="coords-text">{coordsText}</pre>
@@ -175,6 +202,21 @@ export default function WorkPage() {
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="goal-row">
+            <div className="goal-box">
+              <span className="goal-title">But</span>
+              <input
+                type="checkbox"
+                className="goal-checkbox"
+                checked={getIsGoal(currentFrame)}
+                onChange={() => toggleGoal(currentFrame)}
+              />
+            </div>
+            <button className="need-help-btn" onClick={() => setShowHelp(true)}>
+              Need help?
+            </button>
           </div>
         </aside>
 
