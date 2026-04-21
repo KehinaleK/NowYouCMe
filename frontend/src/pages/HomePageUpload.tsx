@@ -4,7 +4,14 @@ import { API_URL } from "../config";
 import TutorialOverlay from "../components/TutorialOverlay";
 import type { TutorialStep } from "../components/TutorialOverlay";
 import "../styles/HomePage.css";
+import HelpPage from "./HelpPage";
 
+export default function HomePageUpload() {
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [coordsFile, setCoordsFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const navigate = useNavigate();
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     target: ".upload-block:first-child",
@@ -122,9 +129,33 @@ export default function HomePageUpload() {
   return (
     <div>
       <TutorialOverlay steps={TUTORIAL_STEPS} storageKey="tutorial-home" />
+      {/*Ajout HELP overlay */}
+      {showHelp && (
+      <HelpPage onClose={() => setShowHelp(false)} />
+      )}
       <header>
         <h1>Choisissez une vidéo à analyser</h1>
         <div className="divider" />
+
+        {/*Bouton Help*/}
+        <button
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            padding: "10px 16px",
+            borderRadius: "20px",
+            border: "none",
+            background: "#111",
+            color: "white",
+            fontWeight: "500",
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          }}
+          onClick={() => setShowHelp(true)}
+        >
+          Need help ?
+        </button>
       </header>
 
       <div className="upload-wrapper">
