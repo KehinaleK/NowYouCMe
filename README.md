@@ -47,7 +47,7 @@ venv\Scripts\activate           # Windows
 
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py runserver
+python manage.py runserver 8000
 ```
 Backend accessible sur `http://localhost:8000`.
 

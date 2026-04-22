@@ -1,5 +1,6 @@
 # Environnement virtuel
 .venv/
+db.sqlite3
 
 # Cache Python
 __pycache__/
