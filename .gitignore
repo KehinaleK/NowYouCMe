@@ -1,0 +1,28 @@
+# Environnement virtuel
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Base de données locale Django
+db.sqlite3
+
+# Fichiers media (uploads locaux)
+media/
+
+# Variables d'environnement
+.env
+
+#build and setting
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/*.mp4
+*.mp4
+.claude
